@@ -1,8 +1,3 @@
-<template>
-    <HeaderTemplate />
-    <h1>Bem vindo a tela de Home!</h1>
-</template>
-
 <script>
 import HeaderTemplate from '../components/HeaderTemplate.vue'
 import FooterTemplate from '../components/FooterTemplate.vue'
@@ -15,3 +10,14 @@ import FooterTemplate from '../components/FooterTemplate.vue'
         }
     }
 </script>
+
+<template>
+    <HeaderTemplate />
+    <div class="banner">
+        <img src="../assets/banner.png" alt="Banner">
+    </div>
+</template>
+
+<style scoped>
+
+</style>
