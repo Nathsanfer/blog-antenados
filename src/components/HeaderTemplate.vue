@@ -8,7 +8,6 @@
     <nav class="navigation-header">
       <router-link to="/" class="nav-link">Home</router-link>
       <router-link to="/blog" class="nav-link">Blog</router-link>
-      <router-link to="/destaques" class="nav-link">Destaques</router-link>
     </nav>
 
     <router-link class="link" to="/login"
