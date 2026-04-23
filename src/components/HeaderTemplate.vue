@@ -94,4 +94,46 @@
   border: navajowhite;
   cursor: pointer;
 }
+
+@media (max-width: 848px) {
+  .title {
+    font-size: 20px;
+  }
+
+  .navigation-header {
+    gap: 5rem;
+  }
+
+  .nav-link {
+    font-size: 12px;
+  }
+
+  .login-button {
+    padding: 6px 20px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .header {
+    padding: 10px 20px;
+  }
+
+  .title {
+    font-size: 16px;
+  }
+
+  .navigation-header {
+    gap: 2rem;
+  }
+
+  .nav-link {
+    font-size: 10px;
+  }
+
+  .login-button {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+}
 </style>
