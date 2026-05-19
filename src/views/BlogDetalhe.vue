@@ -69,6 +69,7 @@ export default {
           .from("post_cards")
           .select("*")
           .neq("id", postId)
+          .eq("status", "published")
           .order("created_at", { ascending: false })
           .limit(5);
 
