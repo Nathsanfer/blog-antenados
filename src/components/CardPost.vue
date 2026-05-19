@@ -32,6 +32,23 @@ export default {
       type: String,
       default: "",
     },
+    status: {
+      type: String,
+      default: "draft",
+    },
+    showStatus: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  data() {
+    return {
+      statusLabels: {
+        published: "Publicado",
+        draft: "Rascunho",
+        archived: "Arquivado",
+      },
+    };
   },
   setup() {
     const router = useRouter();
@@ -48,6 +65,9 @@ export default {
 <template>
   <div class="card" @click="goToArticle()">
     <img :src="image" :alt="title" />
+    <span v-if="showStatus" class="status-badge" :class="`status-${status}`">
+      {{ statusLabels[status] }}
+    </span>
     <p class="text-categorie" :style="{ color: categoryColor }">
       {{ category }}
     </p>
@@ -66,7 +86,7 @@ export default {
 .card {
   display: flex;
   flex-direction: column;
-  align-items: start;
+  align-items: stretch;
   background: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   border-radius: 20px;
@@ -76,6 +96,7 @@ export default {
     box-shadow 0.25s ease;
   cursor: pointer;
   height: 100%;
+  position: relative;
 }
 
 .card:hover {
@@ -88,6 +109,33 @@ export default {
   height: 200px;
   object-fit: cover;
   display: block;
+}
+
+.status-badge {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  z-index: 3;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: var(--primary-font);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.status-draft {
+  background-color: #da9a16;
+}
+
+.status-published {
+  background-color: #6dac7e;
+}
+
+.status-archived {
+  background-color: #8d8d8d;
 }
 
 .text-categorie {
@@ -108,6 +156,12 @@ export default {
   margin: 0;
   padding: 0.25rem 0.75rem 0;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .brief-content {
@@ -118,7 +172,13 @@ export default {
   padding: 0.5rem 0.75rem;
   line-height: 1.65;
   color: #555;
-  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 6.1em;
 }
 
 .divisor-post {

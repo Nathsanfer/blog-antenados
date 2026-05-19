@@ -1,97 +1,82 @@
 <script>
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import FooterTemplate from "../components/FooterTemplate.vue";
+import CardPost from "../components/CardPost.vue";
 import imagemPost from "../assets/post.jpg";
+import { supabase } from "../composables/useSupabase";
 
 export default {
   name: "Blog",
   components: {
     HeaderTemplate,
     FooterTemplate,
+    CardPost,
   },
   data() {
     return {
-      posts: [
-        {
-          id: 1,
-          imagem: imagemPost,
-          categoria: "ARTES E EXPRESSÃO",
-          titulo: "Cada cor, uma marca: histórias pintadas na escola",
-          resumo: "Em meio a cores, pincéis e muita criatividade, os alunos transformaram um simples muro em uma verdadeira obra de arte. Mais do que uma atividade artística, o projeto representou a...",
-          autor: "@ Aaaaaaa Aaaaa"
-        },
-        {
-          id: 2,
-          imagem: imagemPost,
-          categoria: "ARTES E EXPRESSÃO",
-          titulo: "Cada cor, uma marca: histórias pintadas na escola",
-          resumo: "Em meio a cores, pincéis e muita criatividade, os alunos transformaram um simples muro em uma verdadeira obra de arte. Mais do que uma atividade artística, o projeto representou a...",
-          autor: "@ Aaaaaaa Aaaaa"
-        },
-        {
-          id: 3,
-          imagem: imagemPost,
-          categoria: "ARTES E EXPRESSÃO",
-          titulo: "Cada cor, uma marca: histórias pintadas na escola",
-          resumo: "Em meio a cores, pincéis e muita criatividade, os alunos transformaram um simples muro em uma verdadeira obra de arte. Mais do que uma atividade artística, o projeto representou a...",
-          autor: "@ Aaaaaaa Aaaaa"
-        },
-        {
-          id: 4,
-          imagem: imagemPost,
-          categoria: "ARTES E EXPRESSÃO",
-          titulo: "Cada cor, uma marca: histórias pintadas na escola",
-          resumo: "Em meio a cores, pincéis e muita criatividade, os alunos transformaram um simples muro em uma verdadeira obra de arte. Mais do que uma atividade artística, o projeto representou a...",
-          autor: "@ Aaaaaaa Aaaaa"
-        },
-        {
-          id: 5,
-          imagem: imagemPost,
-          categoria: "ARTES E EXPRESSÃO",
-          titulo: "Cada cor, uma marca: histórias pintadas na escola",
-          resumo: "Em meio a cores, pincéis e muita criatividade, os alunos transformaram um simples muro em uma verdadeira obra de arte. Mais do que uma atividade artística, o projeto representou a...",
-          autor: "@ Aaaaaaa Aaaaa"
-        },
-        {
-          id: 6,
-          imagem: imagemPost,
-          categoria: "ARTES E EXPRESSÃO",
-          titulo: "Cada cor, uma marca: histórias pintadas na escola",
-          resumo: "Em meio a cores, pincéis e muita criatividade, os alunos transformaram um simples muro em uma verdadeira obra de arte. Mais do que uma atividade artística, o projeto representou a...",
-          autor: "@ Aaaaaaa Aaaaa"
-        },
-        {
-          id: 7,
-          imagem: imagemPost,
-          categoria: "ARTES E EXPRESSÃO",
-          titulo: "Cada cor, uma marca: histórias pintadas na escola",
-          resumo: "Em meio a cores, pincéis e muita criatividade, os alunos transformaram um simples muro em uma verdadeira obra de arte. Mais do que uma atividade artística, o projeto representou a...",
-          autor: "@ Aaaaaaa Aaaaa"
-        },
-        {
-          id: 8,
-          imagem: imagemPost,
-          categoria: "ARTES E EXPRESSÃO",
-          titulo: "Cada cor, uma marca: histórias pintadas na escola",
-          resumo: "Em meio a cores, pincéis e muita criatividade, os alunos transformaram um simples muro em uma verdadeira obra de arte. Mais do que uma atividade artística, o projeto representou a...",
-          autor: "@ Aaaaaaa Aaaaa"
-        },
-        {
-          id: 9,
-          imagem: imagemPost,
-          categoria: "ARTES E EXPRESSÃO",
-          titulo: "Cada cor, uma marca: histórias pintadas na escola",
-          resumo: "Em meio a cores, pincéis e muita criatividade, os alunos transformaram um simples muro em uma verdadeira obra de arte. Mais do que uma atividade artística, o projeto representou a...",
-          autor: "@ Aaaaaaa Aaaaa"
-        }
-      ]
+      posts: [],
+      searchQuery: "",
+      selectedCategory: "",
     };
   },
-  methods: {
-    irParaDetalhe(postId) {
-      this.$router.push(`/blog/${postId}`);
+  async mounted() {
+    try {
+      const { data, error } = await supabase
+        .from("post_cards")
+        .select("*")
+        .eq("status", "published")
+        .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Erro ao buscar os posts:", error);
+          return;
+        }
+
+        this.posts = (data || []).map((p) => ({
+          id: p.id,
+          image: p.cover_image_url || "../assets/post.jpg",
+          category: p.category_name || "",
+          categoryColor: p.category_color || "#da4167",
+          title: p.title || "",
+          content: p.subtitle || "",
+          author: p.author_name || "",
+          status: p.status || "draft",
+        }));
+    } catch (e) {
+      console.error("Erro ao buscar os posts:", e);
     }
-  }
+  },
+  computed: {
+    uniqueCategories() {
+      const categoriesMap = new Map();
+      this.posts.forEach((post) => {
+        if (!categoriesMap.has(post.category)) {
+          categoriesMap.set(post.category, post.categoryColor);
+        }
+      });
+      return Array.from(categoriesMap, ([name, color]) => ({ name, color }));
+    },
+    filteredPosts() {
+      return this.posts.filter((post) => {
+        const matchesSearch =
+          !this.searchQuery.trim() ||
+          post.title.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+          post.category.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+          post.author.toLowerCase().includes(this.searchQuery.toLowerCase());
+
+        const matchesCategory =
+          !this.selectedCategory ||
+          post.category.toLowerCase() === this.selectedCategory.toLowerCase();
+
+        return matchesSearch && matchesCategory;
+      });
+    },
+  },
+  methods: {
+    selectCategory(category) {
+      this.selectedCategory = this.selectedCategory === category ? "" : category;
+    },
+  },
 };
 </script>
 
@@ -99,35 +84,46 @@ export default {
   <HeaderTemplate />
 
   <div class="header-page">
-    <img src="../assets/icons_highlights/icon9.png" alt="Icone de Beca" class="icon-desktop" />
+    <img
+      src="../assets/icons_highlights/icon9.png"
+      alt="Icone de Beca"
+      class="icon-desktop"
+    />
     <img src="../assets/icons_highlights/icon10.png" alt="Icone de Lâmpada" />
     <div class="divisor"></div>
     <h1>Blog</h1>
     <div class="divisor"></div>
     <img src="../assets/icons_highlights/icon11.png" alt="Icone de Livro" />
-    <img src="../assets/icons_highlights/icon12.png" alt="Icone de Colmeia" class="icon-desktop" />
+    <img
+      src="../assets/icons_highlights/icon12.png"
+      alt="Icone de Colmeia"
+      class="icon-desktop"
+    />
   </div>
 
   <main>
     <aside class="container-left">
       <div class="search-bar">
-        <p>Realize suas buscas...</p>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Realize suas buscas..."
+          class="search-input"
+        />
         <img src="../assets/icons_highlights/icon13.png" alt="Buscar" />
       </div>
 
       <h3 class="title-sidebar">Categorias</h3>
       <div class="categories">
-        <div class="category">
-          <p>Projetos Ciêntificos</p>
-        </div>
-        <div class="category">
-          <p>Folclore</p>
-        </div>
-        <div class="category">
-          <p>Consciência Negra</p>
-        </div>
-        <div class="category">
-          <p>Artes e Expressão</p>
+        <div
+          v-for="cat in uniqueCategories"
+          :key="cat.name"
+          class="category"
+          :class="{ active: selectedCategory === cat.name }"
+          :style="{ backgroundColor: cat.color }"
+          @click="selectCategory(cat.name)"
+        >
+          <p>{{ cat.name }}</p>
         </div>
       </div>
 
@@ -147,22 +143,19 @@ export default {
 
     <div class="container-right">
       <div class="posts-grid">
-        <div 
-          v-for="post in posts" 
+        <CardPost
+          v-for="post in filteredPosts"
           :key="post.id"
-          class="card"
-          @click="irParaDetalhe(post.id)"
-        >
-          <img :src="post.imagem" :alt="post.titulo" />
-          <p class="text-categorie">{{ post.categoria }}</p>
-          <h4 class="title-post">{{ post.titulo }}</h4>
-          <p class="brief-content">
-            {{ post.resumo }}
-            <strong>Ler Mais</strong>
-          </p>
-          <div class="divisor-post"></div>
-          <p class="author-post">por <span>{{ post.autor }}</span></p>
-        </div>
+          :id="post.id"
+          :image="post.image"
+          :category="post.category"
+          :category-color="post.categoryColor"
+          :title="post.title"
+          :content="post.content"
+          :author="post.author"
+          :status="post.status"
+          :show-status="false"
+        />
       </div>
     </div>
   </main>
@@ -206,7 +199,7 @@ main {
   display: flex;
   width: 85%;
   margin: 0 auto;
-  justify-content: space-between;       
+  justify-content: space-between;
   flex-direction: row;
   max-width: 1200px;
   width: 90%;
@@ -231,25 +224,35 @@ main {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.09);
   cursor: text;
   transition: box-shadow 0.2s ease;
+  padding: 0 0.7rem;
 }
 
-.search-bar:hover {
+.search-bar:hover,
+.search-bar:focus-within {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
 }
 
-.search-bar p {
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
   font-size: 12px;
   font-family: var(--primary-font);
+  color: #333;
+  padding: 0.7rem 0;
+  outline: none;
+}
+
+.search-input::placeholder {
   color: #b7b7b7;
-  margin: 0;
-  padding: 0.7rem;
 }
 
 .search-bar img {
   width: 20px;
   height: 20px;
-  margin: 0.5rem;
+  margin: 0 0.5rem;
   opacity: 0.45;
+  flex-shrink: 0;
 }
 
 .title-sidebar {
@@ -270,17 +273,27 @@ main {
 .category {
   width: 100%;
   height: 45px;
-  background-image:
-    linear-gradient(rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.48)),
-    url("../assets/image1.png");
-  background-size: cover;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+
+.category::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.15);
+  z-index: 1;
+  border-radius: 12px;
 }
 
 .category:hover {
@@ -288,13 +301,21 @@ main {
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18);
 }
 
+.category.active {
+  border: 2px solid var(--color-green);
+  box-shadow: 0 0 0 3px rgba(109, 172, 126, 0.2);
+}
+
 .category p {
   font-size: 12px;
+  font-weight: 500;
   font-family: var(--primary-font);
   color: #fff;
   margin: 0;
   padding: 0 0.75rem;
   text-align: center;
+  position: relative;
+  z-index: 2;
 }
 
 /* Journals */
@@ -314,7 +335,9 @@ main {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .jornal:hover {
@@ -351,7 +374,9 @@ main {
   overflow: hidden;
   cursor: pointer;
   position: relative;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .card:hover {

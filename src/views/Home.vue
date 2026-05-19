@@ -21,6 +21,7 @@ export default {
       const { data, error } = await supabase
         .from("post_cards")
         .select("*")
+        .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(3);
 
@@ -203,6 +204,8 @@ export default {
           :title="post.title"
           :content="post.content"
           :author="post.author"
+          :status="post.status"
+          :show-status="false"
         />
       </div>
       <router-link class="link-btn" to="#">
