@@ -56,7 +56,6 @@ const logout = async () => {
         <router-link to="/perfil" class="link">
           <button class="profile-button">Meu Perfil</button>
         </router-link>
-        <button class="logout-button" @click="logout">Sair</button>
       </div>
     </div>
   </header>
