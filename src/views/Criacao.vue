@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import FooterTemplate from "../components/FooterTemplate.vue";
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import CardPost from "../components/CardPost.vue";
+import CardNewspaper from "../components/CardNewspaper.vue";
 import { supabase } from "../composables/useSupabase";
 
 export default {
@@ -11,10 +12,12 @@ export default {
     HeaderTemplate,
     FooterTemplate,
     CardPost,
+    CardNewspaper,
   },
   data() {
     return {
       posts: [],
+      newspapers: [],
       activeSection: "artigos",
       activeStatusFilter: "todos",
       statusLabels: {
@@ -45,42 +48,83 @@ export default {
       return this.sections[this.activeSection];
     },
     filteredItems() {
+      const items = this.activeSection === "artigos" ? this.posts : this.newspapers;
       if (this.activeStatusFilter === "todos") {
-        return this.posts;
+        return items;
       }
-      return this.posts.filter((post) => post.status === this.activeStatusFilter);
+      return items.filter((item) => item.status === this.activeStatusFilter);
     },
     totalItemsLabel() {
       return `Total de ${this.currentSection.label}: ${this.filteredItems.length}`;
     },
   },
   async mounted() {
-    try {
-      const { data, error } = await supabase
-        .from("post_cards")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Erro ao buscar os posts:", error);
-        return;
-      }
-
-      this.posts = (data || []).map((p) => ({
-        id: p.id,
-        image: p.cover_image_url || "../assets/post.jpg",
-        category: p.category_name || "",
-        categoryColor: p.category_color || "#da4167",
-        title: p.title || "",
-        content: p.subtitle || "",
-        author: p.author_name || "",
-        status: p.status || "draft",
-      }));
-    } catch (e) {
-      console.error("Erro ao buscar os posts:", e);
-    }
+    await this.loadPosts();
+    await this.loadNewspapers();
   },
   methods: {
+    async loadPosts() {
+      try {
+        const { data, error } = await supabase
+          .from("post_cards")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Erro ao buscar os posts:", error);
+          return;
+        }
+
+        this.posts = (data || []).map((p) => ({
+          id: p.id,
+          image: p.cover_image_url || "../assets/post.jpg",
+          category: p.category_name || "",
+          categoryColor: p.category_color || "#da4167",
+          title: p.title || "",
+          content: p.subtitle || "",
+          author: p.author_name || "",
+          status: p.status || "draft",
+        }));
+      } catch (e) {
+        console.error("Erro ao buscar os posts:", e);
+      }
+    },
+    async loadNewspapers() {
+      try {
+        console.log("Iniciando carregamento de jornais...");
+        
+        const { data, error, status } = await supabase
+          .from("newspapers")
+          .select("*");
+
+        console.log("Status da query:", status);
+        console.log("Erro retornado:", error);
+        console.log("Dados retornados:", data);
+
+        if (error) {
+          console.error("Erro ao buscar os jornais:", error);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          console.warn("Nenhum jornal encontrado no banco de dados");
+          this.newspapers = [];
+          return;
+        }
+
+        this.newspapers = data.map((n) => ({
+          id: n.id,
+          title: n.title || "",
+          pdfUrl: n.pdf_url || "",
+          status: n.status || "draft",
+          publishedAt: n.published_at || "",
+        }));
+
+        console.log("Jornais processados:", this.newspapers);
+      } catch (e) {
+        console.error("Erro ao buscar os jornais:", e);
+      }
+    },
     setSection(section) {
       this.activeSection = section;
     },
@@ -151,6 +195,7 @@ export default {
       </div>
       <div class="posts-grid">
         <CardPost
+          v-if="activeSection === 'artigos'"
           v-for="post in filteredItems"
           :key="post.id"
           :id="post.id"
@@ -161,6 +206,16 @@ export default {
           :content="post.content"
           :author="post.author"
           :status="post.status"
+        />
+        <CardNewspaper
+          v-else
+          v-for="newspaper in filteredItems"
+          :key="newspaper.id"
+          :id="newspaper.id"
+          :title="newspaper.title"
+          :pdf-url="newspaper.pdfUrl"
+          :status="newspaper.status"
+          :published-at="newspaper.publishedAt"
         />
       </div>
     </div>
