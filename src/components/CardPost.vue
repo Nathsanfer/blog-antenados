@@ -5,7 +5,7 @@ export default {
   name: "CardPost",
   props: {
     id: {
-      type: Number,
+      type: [Number, String],
       required: true,
     },
     image: {
