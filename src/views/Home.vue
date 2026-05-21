@@ -2,6 +2,7 @@
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import FooterTemplate from "../components/FooterTemplate.vue";
 import CardPost from "../components/CardPost.vue";
+import CardNewspaper from "../components/CardNewspaper.vue";
 import { supabase } from "../composables/useSupabase.js";
 
 export default {
@@ -10,10 +11,12 @@ export default {
     HeaderTemplate,
     FooterTemplate,
     CardPost,
+    CardNewspaper,
   },
   data() {
     return {
       posts: [],
+      newspapers: [],
     };
   },
   async mounted() {
@@ -42,6 +45,33 @@ export default {
       }));
     } catch (e) {
       console.error("Erro ao buscar posts:", e);
+    }
+
+    // Buscar jornais
+    try {
+      const { data, error } = await supabase
+        .from("newspapers")
+        .select("*")
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error("Erro ao buscar jornais:", error);
+        return;
+      }
+
+      // Map the newspaper fields to the CardNewspaper props
+      this.newspapers = (data || []).map((n) => ({
+        id: n.id,
+        title: n.title || "",
+        status: n.status || "draft",
+        publishedAt: n.published_at || "",
+        pdfUrl: n.pdf_url || "",
+        showStatus: false,
+      }));
+    } catch (e) {
+      console.error("Erro ao buscar jornais:", e);
     }
   },
 };
@@ -103,11 +133,9 @@ export default {
               <img src="../assets/icons_highlights/icon2.png" alt="" />
             </div>
             <div class="topic-content1">
-              <h3 class="subtitle">Objetivo 1</h3>
+              <h3 class="subtitle">Preservar a Cultura</h3>
               <p class="description">
-                Em meio a cores, pincéis e muita criatividade, os alunos
-                transformaram um simples muro em uma verdadeira obra de arte. Mais
-                do que uma atividade...
+                Documentamos e valorizamos as manifestações culturais e folclóricas que fazem parte de nossa identidade, garantindo que tradições ancestrais sejam conhecidas e respeitadas pelas gerações futuras.
               </p>
             </div>
           </li>
@@ -116,11 +144,9 @@ export default {
               <img src="../assets/icons_highlights/icon2.png" alt="" />
             </div>
             <div class="topic-content1">
-              <h3 class="subtitle">Objetivo 1</h3>
+              <h3 class="subtitle">Ampliar Conhecimento</h3>
               <p class="description">
-                Em meio a cores, pincéis e muita criatividade, os alunos
-                transformaram um simples muro em uma verdadeira obra de arte. Mais
-                do que uma atividade...
+                Promovemos conteúdo educativo e informativo que contribui para o desenvolvimento intelectual de nossos leitores, inspirando o pensamento crítico e a curiosidade pelo conhecimento.
               </p>
             </div>
           </li>
@@ -135,11 +161,9 @@ export default {
         <ul class="item-objective2">
           <li class="item">
             <div class="topic-content2">
-              <h3 class="subtitle">Objetivo 1</h3>
+              <h3 class="subtitle">Fortalecer Identidades</h3>
               <p class="description">
-                Em meio a cores, pincéis e muita criatividade, os alunos
-                transformaram um simples muro em uma verdadeira obra de arte. Mais
-                do que uma atividade...
+                Celebramos a diversidade e promovemos a inclusão, reconhecendo e valorizando as diferentes vozes, experiências e perspectivas que enriquecem nossa comunidade.
               </p>
             </div>
             <div class="icon">
@@ -148,11 +172,9 @@ export default {
           </li>
           <li class="item">
             <div class="topic-content2">
-              <h3 class="subtitle">Objetivo 1</h3>
+              <h3 class="subtitle">Engajar a Comunidade</h3>
               <p class="description">
-                Em meio a cores, pincéis e muita criatividade, os alunos
-                transformaram um simples muro em uma verdadeira obra de arte. Mais
-                do que uma atividade...
+                Criamos um espaço de diálogo e troca de ideias onde todos possam compartilhar suas histórias, aprender com os outros e contribuir para um futuro mais consciente e conectado.
               </p>
             </div>
             <div class="icon">
@@ -187,11 +209,40 @@ export default {
       </div>
     </section>
 
+    <section class="newspapers">
+      <div class="newspapers-header">
+        <div class="section-header">
+          <div class="divisor"></div>
+          <h1 class="title2">📰 Leia Nossos Jornais</h1>
+          <div class="divisor"></div>
+        </div>
+        <p class="newspapers-subtitle">Explore edições especiais e mantenha-se informado</p>
+      </div>
+      <div class="newspapers-grid">
+        <CardNewspaper
+          v-for="newspaper in newspapers"
+          :key="newspaper.id"
+          :id="newspaper.id"
+          :title="newspaper.title"
+          :status="newspaper.status"
+          :published-at="newspaper.publishedAt"
+          :pdf-url="newspaper.pdfUrl"
+          :show-status="newspaper.showStatus"
+        />
+      </div>
+      <router-link class="link-btn" to="#">
+        <button class="btn btn-secondary">Ver Mais Jornais</button>
+      </router-link>
+    </section>
+
     <section class="recent-posts">
-      <div class="section-header">
-        <div class="divisor"></div>
-        <h1 class="title2">Postagens Recentes</h1>
-        <div class="divisor"></div>
+      <div class="recent-posts-header">
+        <div class="section-header">
+          <div class="divisor"></div>
+          <h1 class="title2">✍️ Postagens Recentes</h1>
+          <div class="divisor"></div>
+        </div>
+        <p class="recent-posts-subtitle">Acompanhe os últimos artigos e histórias da comunidade</p>
       </div>
       <div class="posts">
         <CardPost
@@ -209,7 +260,7 @@ export default {
         />
       </div>
       <router-link class="link-btn" to="#">
-        <button class="btn">Ver Mais</button>
+        <button class="btn btn-primary">Ver Mais Postagens</button>
       </router-link>
     </section>
   </main>
@@ -593,19 +644,37 @@ export default {
 /* ===== Recent Posts ===== */
 .recent-posts {
   max-width: 1200px;
-  margin: 4rem auto 5rem;
+  margin: 6rem auto 5rem;
   padding: 0 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
+  gap: 2.5rem;
+}
+
+.recent-posts-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.recent-posts-subtitle {
+  font-size: 16px;
+  font-family: var(--primary-font);
+  color: #666;
+  margin: 0;
+  font-weight: 300;
+  letter-spacing: 0.3px;
 }
 
 .posts {
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  gap: 2rem;
+  animation: fadeInUp 0.6s ease;
 }
 
 .link-btn {
@@ -631,6 +700,107 @@ export default {
   box-shadow: 0 4px 14px rgba(109, 172, 131, 0.4);
 }
 
+.btn-primary {
+  background-color: var(--color-green);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: left 0.3s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:hover {
+  background-color: #5a9a70;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(109, 172, 131, 0.5);
+}
+
+/* ===== Newspapers ===== */
+.newspapers {
+  max-width: 1200px;
+  margin: 6rem auto 5rem;
+  padding: 0 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.newspapers-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.newspapers-subtitle {
+  font-size: 16px;
+  font-family: var(--primary-font);
+  color: #666;
+  margin: 0;
+  font-weight: 300;
+  letter-spacing: 0.3px;
+}
+
+.newspapers-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  animation: fadeInUp 0.6s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #6dac7e 0%, #41d0da 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-secondary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: left 0.3s ease;
+}
+
+.btn-secondary:hover::before {
+  left: 100%;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #5a9a70 0%, #38bcc8 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(109, 172, 131, 0.5);
+}
+
 /* ============================
    RESPONSIVE BREAKPOINTS
    ============================ */
@@ -643,6 +813,12 @@ export default {
 
   .posts {
     grid-template-columns: repeat(2, 1fr);
+    gap: 1.75rem;
+  }
+
+  .newspapers-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.75rem;
   }
 
   .description {
@@ -724,6 +900,12 @@ export default {
     max-width: 460px;
     margin: 0 auto;
   }
+
+  .newspapers-grid {
+    grid-template-columns: 1fr;
+    max-width: 460px;
+    margin: 0 auto;
+  }
 }
 
 /* Mobile */
@@ -754,11 +936,28 @@ export default {
     margin-bottom: 4rem;
   }
 
-  .decoration {
-    padding: 0 1.25rem;
+  .posts {
+    max-width: 100%;
+    gap: 1.5rem;
   }
 
-  .title2 {
+  .newspapers {
+    padding: 0 1.25rem;
+    margin-bottom: 4rem;
+  }
+
+  .newspapers-grid {
+    grid-template-columns: 1fr;
+    max-width: 460px;
+    margin: 0 auto;
+    gap: 1.5rem;
+  }
+
+  .recent-posts-subtitle {
+    font-size: 14px;
+  }
+
+  .newspapers-subtitle {
     font-size: 22px;
   }
 
