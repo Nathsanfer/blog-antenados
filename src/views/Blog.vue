@@ -83,7 +83,6 @@ export default {
         const { data, error } = await supabase
           .from("newspapers")
           .select("*")
-          .eq("status", "published")
           .order("published_at", { ascending: false });
 
         if (error) {
@@ -95,7 +94,6 @@ export default {
           id: n.id,
           title: n.title || "",
           pdfUrl: n.pdf_url || "",
-          status: n.status || "draft",
           publishedAt: n.published_at || "",
         }));
       } catch (e) {
@@ -225,9 +223,7 @@ export default {
           :id="newspaper.id"
           :title="newspaper.title"
           :pdf-url="newspaper.pdfUrl"
-          :status="newspaper.status"
           :published-at="newspaper.publishedAt"
-          :show-status="false"
         />
       </div>
     </div>

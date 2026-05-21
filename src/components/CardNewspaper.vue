@@ -18,10 +18,6 @@ export default {
       type: String,
       default: "",
     },
-    status: {
-      type: String,
-      default: "draft",
-    },
     publishedAt: {
       type: String,
       default: "",
@@ -30,18 +26,9 @@ export default {
       type: String,
       default: "",
     },
-    showStatus: {
-      type: Boolean,
-      default: true,
-    },
   },
   data() {
     return {
-      statusLabels: {
-        published: "Publicado",
-        draft: "Rascunho",
-        archived: "Arquivado",
-      },
       showPdfModal: false,
       pdfThumbnail: null,
       loadingThumbnail: true,
@@ -104,9 +91,6 @@ export default {
 <template>
   <div class="card" @click="openPdf">
     <div class="newspaper-cover" :class="{ 'has-thumbnail': pdfThumbnail }">
-      <span v-if="showStatus" class="status-badge" :class="`status-${status}`">
-        {{ statusLabels[status] }}
-      </span>
       <div v-if="loadingThumbnail" class="cover-content">
         <div class="newspaper-icon">📰</div>
         <div class="newspaper-label">Carregando...</div>
@@ -228,33 +212,6 @@ export default {
   font-family: var(--secondary-font);
   text-transform: uppercase;
   letter-spacing: 1px;
-}
-
-.status-badge {
-  position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
-  z-index: 3;
-  padding: 0.35rem 0.7rem;
-  border-radius: 999px;
-  font-size: 11px;
-  font-family: var(--primary-font);
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: #fff;
-  text-transform: uppercase;
-}
-
-.status-draft {
-  background-color: #da9a16;
-}
-
-.status-published {
-  background-color: #6dac7e;
-}
-
-.status-archived {
-  background-color: #8d8d8d;
 }
 
 .title-newspaper {
