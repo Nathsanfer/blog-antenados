@@ -1,80 +1,99 @@
-<script>
+<script setup>
+import { ref, onMounted } from "vue";
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import FooterTemplate from "../components/FooterTemplate.vue";
 import CardPost from "../components/CardPost.vue";
 import CardNewspaper from "../components/CardNewspaper.vue";
 import { supabase } from "../composables/useSupabase.js";
+import { CATEGORY_ICONS } from "../lib/categories.ts";
 
-export default {
-  name: "Home",
-  components: {
-    HeaderTemplate,
-    FooterTemplate,
-    CardPost,
-    CardNewspaper,
-  },
-  data() {
-    return {
-      posts: [],
-      newspapers: [],
-    };
-  },
-  async mounted() {
-    try {
-      const { data, error } = await supabase
-        .from("post_cards")
-        .select("*")
-        .eq("status", "published")
-        .order("created_at", { ascending: false })
-        .limit(3);
+const posts = ref([]);
+const newspapers = ref([]);
+const categories = ref([]);
 
-      if (error) {
-        console.error("Erro ao buscar posts:", error);
-        return;
-      }
+onMounted(async () => {
+  await fetchCategories();
+  await fetchPosts();
+  await fetchNewspapers();
+});
 
-      // Map the view fields to the CardPost props
-      this.posts = (data || []).map((p) => ({   
-        id: p.id,
-        image: p.cover_image_url || "../assets/post.jpg",
-        category: p.category_name || "",
-        categoryColor: p.category_color || "#da4167",
-        title: p.title || "",
-        content: p.subtitle || "",
-        author: p.author_name || "",
-      }));
-    } catch (e) {
-      console.error("Erro ao buscar posts:", e);
+async function fetchCategories() {
+  try {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("Erro ao buscar categorias:", error);
+      return;
     }
 
-    // Buscar jornais
-    try {
-      const { data, error } = await supabase
-        .from("newspapers")
-        .select("*")
-        .eq("status", "published")
-        .order("published_at", { ascending: false })
-        .limit(3);
+    categories.value = (data || []).map((c) => ({
+      id: c.id,
+      nome: c.name || "",
+      cor: c.color || "#da4167",
+      icone: CATEGORY_ICONS[c.icon] || CATEGORY_ICONS.lamp,
+    }));
+  } catch (e) {
+    console.error("Erro ao buscar categorias:", e);
+  }
+}
 
-      if (error) {
-        console.error("Erro ao buscar jornais:", error);
-        return;
-      }
+async function fetchPosts() {
+  try {
+    const { data, error } = await supabase
+      .from("post_cards")
+      .select("*")
+      .eq("status", "published")
+      .order("created_at", { ascending: false })
+      .limit(3);
 
-      // Map the newspaper fields to the CardNewspaper props
-      this.newspapers = (data || []).map((n) => ({
-        id: n.id,
-        title: n.title || "",
-        status: n.status || "draft",
-        publishedAt: n.published_at || "",
-        pdfUrl: n.pdf_url || "",
-        showStatus: false,
-      }));
-    } catch (e) {
-      console.error("Erro ao buscar jornais:", e);
+    if (error) {
+      console.error("Erro ao buscar posts:", error);
+      return;
     }
-  },
-};
+
+    posts.value = (data || []).map((p) => ({
+      id: p.id,
+      image: p.cover_image_url || "../assets/post.jpg",
+      category: p.category_name || "",
+      categoryColor: p.category_color || "#da4167",
+      title: p.title || "",
+      content: p.subtitle || "",
+      author: p.author_name || "",
+    }));
+  } catch (e) {
+    console.error("Erro ao buscar posts:", e);
+  }
+}
+
+async function fetchNewspapers() {
+  try {
+    const { data, error } = await supabase
+      .from("newspapers")
+      .select("*")
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(3);
+
+    if (error) {
+      console.error("Erro ao buscar jornais:", error);
+      return;
+    }
+
+    newspapers.value = (data || []).map((n) => ({
+      id: n.id,
+      title: n.title || "",
+      status: n.status || "draft",
+      publishedAt: n.published_at || "",
+      pdfUrl: n.pdf_url || "",
+      showStatus: false,
+    }));
+  } catch (e) {
+    console.error("Erro ao buscar jornais:", e);
+  }
+}
 </script>
 
 <template>
@@ -88,29 +107,11 @@ export default {
     <section class="categories">
       <h1 class="title1">Explore por temas (Destaques)</h1>
       <ul class="list-themes">
-        <li class="item-theme">
-          <div class="container-icon">
-            <img src="../assets/icons_highlights/icon1.png" alt="Icone para o tema 1" />
+        <li class="item-theme" v-for="category in categories" :key="category.id">
+          <div class="container-icon" :style="{ backgroundColor: category.cor }">
+            <img :src="category.icone" :alt="`Icone para o tema ${category.nome}`" />
           </div>
-          <p class="name-theme">Artes e Expressão</p>
-        </li>
-        <li class="item-theme">
-          <div class="container-icon">
-            <img src="../assets/icons_highlights/icon2.png" alt="Icone para o tema 2" />
-          </div>
-          <p class="name-theme">Folclore</p>
-        </li>
-        <li class="item-theme">
-          <div class="container-icon">
-            <img src="../assets/icons_highlights/icon3.png" alt="Icone para o tema 3" />
-          </div>
-          <p class="name-theme">Consciência Negra</p>
-        </li>
-        <li class="item-theme">
-          <div class="container-icon">
-            <img src="../assets/icons_highlights/icon4.png" alt="Icone para o tema 4" />
-          </div>
-          <p class="name-theme">Projetos Ciêntificos</p>
+          <p class="name-theme">{{ category.nome }}</p>
         </li>
       </ul>
     </section>
@@ -231,7 +232,7 @@ export default {
         />
       </div>
       <router-link class="link-btn" to="#">
-        <button class="btn btn-secondary">Ver Mais Jornais</button>
+        <button class="btn btn-primary">Ver Mais Jornais</button>
       </router-link>
     </section>
 
@@ -644,7 +645,7 @@ export default {
 /* ===== Recent Posts ===== */
 .recent-posts {
   max-width: 1200px;
-  margin: 6rem auto 5rem;
+  margin: 3rem auto 1rem;
   padding: 0 2rem;
   display: flex;
   flex-direction: column;
@@ -772,33 +773,6 @@ export default {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.btn-secondary {
-  background: linear-gradient(135deg, #6dac7e 0%, #41d0da 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-secondary::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.2);
-  transition: left 0.3s ease;
-}
-
-.btn-secondary:hover::before {
-  left: 100%;
-}
-
-.btn-secondary:hover {
-  background: linear-gradient(135deg, #5a9a70 0%, #38bcc8 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(109, 172, 131, 0.5);
 }
 
 /* ============================
