@@ -18,16 +18,39 @@ export default {
     return {
       posts: [],
       newspapers: [],
+      categories: [],
       searchQuery: "",
       selectedCategory: "",
       activeSection: "artigos",
     };
   },
   async mounted() {
+    await this.loadCategories();
     await this.loadPosts();
     await this.loadNewspapers();
   },
   methods: {
+    async loadCategories() {
+      try {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("*");
+
+        if (error) {
+          console.error("Erro ao buscar as categorias:", error);
+          return;
+        }
+
+        this.categories = (data || []).map((c) => ({
+          id: c.id,
+          name: c.name || "",
+          color: c.color || "#6dac7e",
+          icon: c.icon || "",
+        }));
+      } catch (e) {
+        console.error("Erro ao buscar as categorias:", e);
+      }
+    },
     async loadPosts() {
       try {
         const { data, error } = await supabase
@@ -60,7 +83,6 @@ export default {
         const { data, error } = await supabase
           .from("newspapers")
           .select("*")
-          .eq("status", "published")
           .order("published_at", { ascending: false });
 
         if (error) {
@@ -72,7 +94,6 @@ export default {
           id: n.id,
           title: n.title || "",
           pdfUrl: n.pdf_url || "",
-          status: n.status || "draft",
           publishedAt: n.published_at || "",
         }));
       } catch (e) {
@@ -87,15 +108,6 @@ export default {
     },
   },
   computed: {
-    uniqueCategories() {
-      const categoriesMap = new Map();
-      this.posts.forEach((post) => {
-        if (!categoriesMap.has(post.category)) {
-          categoriesMap.set(post.category, post.categoryColor);
-        }
-      });
-      return Array.from(categoriesMap, ([name, color]) => ({ name, color }));
-    },
     filteredPosts() {
       return this.posts.filter((post) => {
         const matchesSearch =
@@ -175,8 +187,8 @@ export default {
       <h3 v-if="activeSection === 'artigos'" class="title-sidebar">Categorias</h3>
       <div v-if="activeSection === 'artigos'" class="categories">
         <div
-          v-for="cat in uniqueCategories"
-          :key="cat.name"
+          v-for="cat in categories"
+          :key="cat.id"
           class="category"
           :class="{ active: selectedCategory === cat.name }"
           :style="{ backgroundColor: cat.color }"
@@ -211,9 +223,7 @@ export default {
           :id="newspaper.id"
           :title="newspaper.title"
           :pdf-url="newspaper.pdfUrl"
-          :status="newspaper.status"
           :published-at="newspaper.publishedAt"
-          :show-status="false"
         />
       </div>
     </div>

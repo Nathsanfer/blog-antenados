@@ -4,6 +4,7 @@ import FooterTemplate from "../components/FooterTemplate.vue";
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import CardPost from "../components/CardPost.vue";
 import CardNewspaper from "../components/CardNewspaper.vue";
+import CardCategory from "../components/CardCategory.vue";
 import { supabase } from "../composables/useSupabase";
 
 export default {
@@ -13,11 +14,13 @@ export default {
     FooterTemplate,
     CardPost,
     CardNewspaper,
+    CardCategory,
   },
   data() {
     return {
       posts: [],
       newspapers: [],
+      categories: [],
       activeSection: "artigos",
       activeStatusFilter: "todos",
       statusLabels: {
@@ -40,6 +43,10 @@ export default {
           label: "Jornais",
           actionLabel: "Criar Jornal",
         },
+        categorias: {
+          label: "Categorias",
+          actionLabel: "Criar Categoria",
+        },
       },
     };
   },
@@ -48,11 +55,18 @@ export default {
       return this.sections[this.activeSection];
     },
     filteredItems() {
-      const items = this.activeSection === "artigos" ? this.posts : this.newspapers;
-      if (this.activeStatusFilter === "todos") {
-        return items;
+      if (this.activeSection === "artigos") {
+        const items = this.posts;
+        if (this.activeStatusFilter === "todos") {
+          return items;
+        }
+        return items.filter((item) => item.status === this.activeStatusFilter);
+      } else if (this.activeSection === "jornais") {
+        return this.newspapers;
+      } else if (this.activeSection === "categorias") {
+        return this.categories;
       }
-      return items.filter((item) => item.status === this.activeStatusFilter);
+      return [];
     },
     totalItemsLabel() {
       return `Total de ${this.currentSection.label}: ${this.filteredItems.length}`;
@@ -61,6 +75,7 @@ export default {
   async mounted() {
     await this.loadPosts();
     await this.loadNewspapers();
+    await this.loadCategories();
   },
   methods: {
     async loadPosts() {
@@ -125,6 +140,30 @@ export default {
         console.error("Erro ao buscar os jornais:", e);
       }
     },
+    async loadCategories() {
+      try {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Erro ao buscar as categorias:", error);
+          return;
+        }
+
+        this.categories = (data || []).map((c) => ({
+          id: c.id,
+          name: c.name || "",
+          description: c.description || "",
+          color: c.color || "#6dac7e",
+          icon: c.icon || "",
+          createdAt: c.created_at || "",
+        }));
+      } catch (e) {
+        console.error("Erro ao buscar as categorias:", e);
+      }
+    },
     setSection(section) {
       this.activeSection = section;
     },
@@ -174,6 +213,14 @@ export default {
       >
         <h3>Jornais</h3>
       </button>
+      <button
+        class="option"
+        :class="{ active: activeSection === 'categorias' }"
+        type="button"
+        @click="setSection('categorias')"
+      >
+        <h3>Categorias</h3>
+      </button>
     </aside>
 
     <div class="container-right">
@@ -181,7 +228,7 @@ export default {
         <p>{{ totalItemsLabel }}</p>
         <button>{{ currentSection.actionLabel }}</button>
       </div>
-      <div class="status-filters">
+      <div class="status-filters" v-if="activeSection === 'artigos'">
         <button
           v-for="filter in statusFilters"
           :key="filter.value"
@@ -208,14 +255,25 @@ export default {
           :status="post.status"
         />
         <CardNewspaper
-          v-else
+          v-else-if="activeSection === 'jornais'"
           v-for="newspaper in filteredItems"
           :key="newspaper.id"
           :id="newspaper.id"
           :title="newspaper.title"
           :pdf-url="newspaper.pdfUrl"
-          :status="newspaper.status"
           :published-at="newspaper.publishedAt"
+          :show-status="false"
+        />
+        <CardCategory
+          v-else-if="activeSection === 'categorias'"
+          v-for="category in filteredItems"
+          :key="category.id"
+          :id="category.id"
+          :name="category.name"
+          :description="category.description"
+          :color="category.color"
+          :icon="category.icon"
+          :created-at="category.createdAt"
         />
       </div>
     </div>
@@ -370,5 +428,9 @@ main {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
+}
+
+.posts-grid:has(.category-card) {
+  grid-template-columns: 1fr;
 }
 </style>

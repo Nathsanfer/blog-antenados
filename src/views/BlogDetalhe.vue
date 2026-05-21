@@ -74,7 +74,7 @@ export default {
           .neq("id", postId)
           .eq("status", "published")
           .order("created_at", { ascending: false })
-          .limit(5);
+          .limit(4);
 
         if (sidebarError) {
           console.error("Erro ao buscar os cards do sidebar:", sidebarError);
@@ -93,9 +93,8 @@ export default {
         const { data: newspaperData, error: newspaperError } = await supabase
           .from("newspapers")
           .select("*")
-          .eq("status", "published")
           .order("published_at", { ascending: false })
-          .limit(3);
+          .limit(3);  
 
         if (newspaperError) {
           console.error("Erro ao buscar os jornais do sidebar:", newspaperError);
