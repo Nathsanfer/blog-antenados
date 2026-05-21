@@ -154,7 +154,7 @@ export default {
   flex-direction: column;
   align-items: stretch;
   background: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   overflow: hidden;
   transition:
@@ -166,8 +166,8 @@ export default {
 }
 
 .card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.13);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(109, 172, 131, 0.25);
 }
 
 .newspaper-cover {

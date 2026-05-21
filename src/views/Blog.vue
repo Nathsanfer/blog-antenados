@@ -2,6 +2,7 @@
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import FooterTemplate from "../components/FooterTemplate.vue";
 import CardPost from "../components/CardPost.vue";
+import CardNewspaper from "../components/CardNewspaper.vue";
 import imagemPost from "../assets/post.jpg";
 import { supabase } from "../composables/useSupabase";
 
@@ -11,21 +12,29 @@ export default {
     HeaderTemplate,
     FooterTemplate,
     CardPost,
+    CardNewspaper,
   },
   data() {
     return {
       posts: [],
+      newspapers: [],
       searchQuery: "",
       selectedCategory: "",
+      activeSection: "artigos",
     };
   },
   async mounted() {
-    try {
-      const { data, error } = await supabase
-        .from("post_cards")
-        .select("*")
-        .eq("status", "published")
-        .order("created_at", { ascending: false });
+    await this.loadPosts();
+    await this.loadNewspapers();
+  },
+  methods: {
+    async loadPosts() {
+      try {
+        const { data, error } = await supabase
+          .from("post_cards")
+          .select("*")
+          .eq("status", "published")
+          .order("created_at", { ascending: false });
 
         if (error) {
           console.error("Erro ao buscar os posts:", error);
@@ -42,9 +51,40 @@ export default {
           author: p.author_name || "",
           status: p.status || "draft",
         }));
-    } catch (e) {
-      console.error("Erro ao buscar os posts:", e);
-    }
+      } catch (e) {
+        console.error("Erro ao buscar os posts:", e);
+      }
+    },
+    async loadNewspapers() {
+      try {
+        const { data, error } = await supabase
+          .from("newspapers")
+          .select("*")
+          .eq("status", "published")
+          .order("published_at", { ascending: false });
+
+        if (error) {
+          console.error("Erro ao buscar os jornais:", error);
+          return;
+        }
+
+        this.newspapers = (data || []).map((n) => ({
+          id: n.id,
+          title: n.title || "",
+          pdfUrl: n.pdf_url || "",
+          status: n.status || "draft",
+          publishedAt: n.published_at || "",
+        }));
+      } catch (e) {
+        console.error("Erro ao buscar os jornais:", e);
+      }
+    },
+    selectCategory(category) {
+      this.selectedCategory = this.selectedCategory === category ? "" : category;
+    },
+    setSection(section) {
+      this.activeSection = section;
+    },
   },
   computed: {
     uniqueCategories() {
@@ -71,10 +111,14 @@ export default {
         return matchesSearch && matchesCategory;
       });
     },
-  },
-  methods: {
-    selectCategory(category) {
-      this.selectedCategory = this.selectedCategory === category ? "" : category;
+    filteredNewspapers() {
+      return this.newspapers.filter((newspaper) => {
+        const matchesSearch =
+          !this.searchQuery.trim() ||
+          newspaper.title.toLowerCase().includes(this.searchQuery.toLowerCase());
+
+        return matchesSearch;
+      });
     },
   },
 };
@@ -113,8 +157,23 @@ export default {
         <img src="../assets/icons_highlights/icon13.png" alt="Buscar" />
       </div>
 
-      <h3 class="title-sidebar">Categorias</h3>
-      <div class="categories">
+      <button
+        class="option"
+        :class="{ active: activeSection === 'jornais' }"
+        @click="setSection('jornais')"
+      >
+        <h3>Jornais</h3>
+      </button>
+      <button
+        class="option"
+        :class="{ active: activeSection === 'artigos' }"
+        @click="setSection('artigos')"
+      >
+        <h3>Artigos</h3>
+      </button>
+
+      <h3 v-if="activeSection === 'artigos'" class="title-sidebar">Categorias</h3>
+      <div v-if="activeSection === 'artigos'" class="categories">
         <div
           v-for="cat in uniqueCategories"
           :key="cat.name"
@@ -127,23 +186,12 @@ export default {
         </div>
       </div>
 
-      <h3 class="title-sidebar">Jornais</h3>
-      <div class="jornals">
-        <div class="jornal">
-          <p>1º Edição do Jornal</p>
-        </div>
-        <div class="jornal">
-          <p>2º Edição do Jornal</p>
-        </div>
-        <div class="jornal">
-          <p>3º Edição do Jornal</p>
-        </div>
-      </div>
     </aside>
 
     <div class="container-right">
       <div class="posts-grid">
         <CardPost
+          v-if="activeSection === 'artigos'"
           v-for="post in filteredPosts"
           :key="post.id"
           :id="post.id"
@@ -154,6 +202,17 @@ export default {
           :content="post.content"
           :author="post.author"
           :status="post.status"
+          :show-status="false"
+        />
+        <CardNewspaper
+          v-else
+          v-for="newspaper in filteredNewspapers"
+          :key="newspaper.id"
+          :id="newspaper.id"
+          :title="newspaper.title"
+          :pdf-url="newspaper.pdfUrl"
+          :status="newspaper.status"
+          :published-at="newspaper.publishedAt"
           :show-status="false"
         />
       </div>
@@ -253,6 +312,46 @@ main {
   margin: 0 0.5rem;
   opacity: 0.45;
   flex-shrink: 0;
+}
+
+.option {
+  width: 100%;
+  border: 1px solid #aaaaaa;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  margin-top: 1.5rem;
+  border-radius: 20px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.option.active {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(white, white) padding-box,
+    linear-gradient(to right, #aca16d, #6dac7e, #41d0da, #7e4ba0, #da4167)
+      border-box;
+}
+
+.option h3 {
+  font-size: 18px;
+  font-weight: 500;
+  font-family: var(--secondary-font);
+  margin: 0;
+  padding: 1rem 0;
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 3px;
+}
+
+.option h3 {
+  pointer-events: none;
 }
 
 .title-sidebar {

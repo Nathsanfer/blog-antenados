@@ -3,6 +3,7 @@ import { supabase } from "../composables/useSupabase.js";
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import FooterTemplate from "../components/FooterTemplate.vue";
 import CardPostSidebar from "../components/CardPostSidebar.vue";
+import CardNewspaperSidebar from "../components/CardNewspaperSidebar.vue";
 
 
 export default {
@@ -11,11 +12,13 @@ export default {
     HeaderTemplate,
     FooterTemplate,
     CardPostSidebar,
+    CardNewspaperSidebar,
   },
   data() {
     return {
       article: null,
       posts: [],
+      newspapers: [],
     };
   },
   async mounted() {
@@ -84,6 +87,26 @@ export default {
           category: p.category_name || "",
           categoryColor: p.category_color || "#da4167",
           title: p.title || "",
+        }));
+
+        // Buscar jornais para a sidebar
+        const { data: newspaperData, error: newspaperError } = await supabase
+          .from("newspapers")
+          .select("*")
+          .eq("status", "published")
+          .order("published_at", { ascending: false })
+          .limit(3);
+
+        if (newspaperError) {
+          console.error("Erro ao buscar os jornais do sidebar:", newspaperError);
+          return;
+        }
+
+        this.newspapers = (newspaperData || []).map((n) => ({
+          id: n.id,
+          title: n.title || "",
+          publishedAt: n.published_at || "",
+          pdfUrl: n.pdf_url || "",
         }));
       } catch (e) {
         console.error("Erro ao buscar os dados do artigo:", e);
@@ -154,6 +177,21 @@ export default {
             :title="post.title"
             :content="post.content"
             :author="post.author"
+          />
+        </template>
+      </ul>
+      <button class="btn-sidebar">Ver Mais</button>
+
+      <h3 class="title-sidebar">Leia Nossos Jornais</h3>
+      <ul class="list-newspapers">
+        <template v-if="newspapers.length">
+          <CardNewspaperSidebar
+            v-for="newspaper in newspapers"
+            :key="newspaper.id"
+            :id="newspaper.id"
+            :title="newspaper.title"
+            :published-at="newspaper.publishedAt"
+            :pdf-url="newspaper.pdfUrl"
           />
         </template>
       </ul>
@@ -305,6 +343,15 @@ main {
 }
 
 .list-cards {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.list-newspapers {
   list-style: none;
   padding: 0;
   margin: 0;

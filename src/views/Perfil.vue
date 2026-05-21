@@ -2,12 +2,18 @@
 import FooterTemplate from "../components/FooterTemplate.vue";
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import { supabase } from "../composables/useSupabase";
+import { useRouter } from 'vue-router';
 
 export default {
   name: "Perfil",
   components: {
     HeaderTemplate,
     FooterTemplate,
+  },
+  setup() {
+    return {
+      router: useRouter()
+    };
   },
   data() {
     return {
@@ -152,6 +158,19 @@ export default {
       } finally {
         this.isSaving = false;
       }
+    },
+
+    // função para sair da conta
+    async logout() {
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        
+        this.router.push('/');
+      } catch (error) {
+        console.error("Erro ao sair da conta:", error.message);
+        alert("Ocorreu um erro ao tentar sair da conta.");
+      }
     }
   },
 };
@@ -191,7 +210,7 @@ export default {
         <h3>Usuários</h3>
       </button>
 
-      <button class="btn-logout" type="button">
+      <button class="btn-logout" type="button" @click="logout">
         Sair da Conta
       </button>
     </aside>

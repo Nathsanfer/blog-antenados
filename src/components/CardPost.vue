@@ -100,8 +100,8 @@ export default {
 }
 
 .card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.13);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(218, 65, 103, 0.2);
 }
 
 .card img {
