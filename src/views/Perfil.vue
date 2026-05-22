@@ -19,6 +19,8 @@ export default {
     return {
       activeSection: "meusDados",
       loading: true,
+      isUploading: false,
+      isSaving: false,
       userData: {
         id: "",
         name: "",
@@ -26,8 +28,6 @@ export default {
         password: "",
         position: "",
         avatar_url: "",
-        isUploading: false,
-        isSaving: false,
       }
     };
   },
@@ -59,7 +59,7 @@ export default {
           .from("users")
           .select("name, position, avatar_url")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
 
         if (profileError) {
           console.error("Erro ao buscar perfil público:", profileError);
@@ -138,6 +138,7 @@ export default {
         // atualiza os dados públicos na tabela users
         const updates = {
           name: this.userData.name,
+          position: this.userData.position,
           avatar_url: this.userData.avatar_url,
           updated_at: new Date()
         };
@@ -231,7 +232,7 @@ export default {
           <div class="left-col">
             <div class="input-group">
               <label>Nome Completo:</label>
-              <input type="text" v-model="userData.name" placeholder="Seu nome completo" />
+              <input type="text" v-model="userData.name" placeholder="Seu nome completo"  maxlength="24" />
             </div>
             
             <div class="input-group">
@@ -281,7 +282,7 @@ export default {
 
             <div class="input-group">
               <label>Cargo:</label>
-              <input type="text" v-model="userData.position" readonly class="input-readonly" />
+              <input type="text" v-model="userData.position" placeholder="Ex: Corrdenadora, Professor..." />
             </div>
 
             <div class="action-container">
