@@ -28,11 +28,27 @@ export default {
         password: "",
         position: "",
         avatar_url: "",
-      }
+      },
+      users: [],
+      showDropdownId: null,
+      showUserModal: false,
+      modalMode: 'create', // 'create' ou 'edit'
+      userForm: {
+        id: '',
+        name: '',
+        email: '',
+        position: '',
+        password: ''
+      },
     };
   },
   async mounted() {
-    await this.fetchUserProfile();
+    await this.fetchUserProfile()
+    await this.fetchUsersList()
+    document.addEventListener('click', this.closeDropdowns);
+  },
+  unmounted() {
+    document.removeEventListener('click', this.closeDropdowns);
   },
 
   methods: {
@@ -172,6 +188,108 @@ export default {
         console.error("Erro ao sair da conta:", error.message);
         alert("Ocorreu um erro ao tentar sair da conta.");
       }
+    },
+
+    async fetchUsersList() {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        this.users = data || [];
+      } catch (error) {
+        console.error("Erro ao buscar usuários:", error.message);
+      }
+    },
+
+    toggleDropdown(userId, event) {
+      // Evita que o clique no botão propague e ative o fechamento automático
+      event.stopPropagation();
+      this.showDropdownId = this.showDropdownId === userId ? null : userId;
+    },
+
+    closeDropdowns() {
+      this.showDropdownId = null;
+    },
+
+    openUserModal(mode, user = null) {
+      this.modalMode = mode;
+      this.showDropdownId = null; // Fecha o dropdown ao abrir modal
+      
+      if (mode === 'edit' && user) {
+        this.userForm = { 
+          id: user.id, 
+          name: user.name, 
+          email: '', // O email idealmente viria de uma view ou edge function
+          position: user.position, 
+          password: '' 
+        };
+      } else {
+        this.userForm = { id: '', name: '', email: '', position: '', password: '' };
+      }
+      
+      this.showUserModal = true;
+    },
+
+    closeUserModal() {
+      this.showUserModal = false;
+      this.userForm = { id: '', name: '', email: '', position: '', password: '' };
+    },
+
+    async saveUser() {
+      try {
+        this.isSaving = true;
+        
+        if (this.modalMode === 'create') {
+          // Lógica de criação
+          alert("Lembrete: Para criar usuários Auth via front-end sem deslogar, é necessário chamar uma Edge Function do Supabase aqui.");
+          // Exemplo de payload p/ Edge Function: { name: this.userForm.name, email: this.userForm.email, password: this.userForm.password, position: this.userForm.position }
+        } else {
+          // Lógica de edição (Apenas atualiza a tabela pública)
+          const { error } = await supabase
+            .from('users')
+            .update({
+              name: this.userForm.name,
+              position: this.userForm.position
+            })
+            .eq('id', this.userForm.id);
+            
+          if (error) throw error;
+          alert("Usuário atualizado com sucesso!");
+        }
+
+        await this.fetchUsersList();
+        this.closeUserModal();
+      } catch (error) {
+        console.error("Erro ao salvar usuário:", error.message);
+        alert("Ocorreu um erro ao salvar o usuário.");
+      } finally {
+        this.isSaving = false;
+      }
+    },
+
+    async confirmDeleteUser(user) {
+      this.showDropdownId = null; // Fecha o dropdown
+      
+      const confirm = window.confirm(`Tem certeza que deseja excluir o usuário: ${user.name}?`);
+      
+      if (confirm) {
+        try {
+          // Lógica de exclusão
+          alert("Lembrete: Para excluir um usuário do sistema (Auth + Public) com segurança, utilize uma Edge Function.");
+          
+          /* Código apenas para a tabela pública (falhará se tiver FK restrita ao Auth):
+          const { error } = await supabase.from('users').delete().eq('id', user.id);
+          if (error) throw error; 
+          */
+          
+          await this.fetchUsersList();
+        } catch (error) {
+          console.error("Erro ao excluir usuário:", error.message);
+        }
+      }
     }
   },
 };
@@ -294,16 +412,84 @@ export default {
         </form>
       </div>
 
-      <div v-else-if="activeSection === 'usuarios'" class="profile-card">
-        <div class="card-header">
-          <h2>Gerenciar Usuários</h2>
-          <div class="card-divisor"></div>
+      <div v-else-if="activeSection === 'usuarios'" class="users-section">
+        
+        <div class="users-header">
+          <h2>Total de Usuários: {{ users.length }}</h2>
+          <button class="btn-create-user" @click="openUserModal('create')">Criar Usuário</button>
         </div>
-        <p style="margin-top: 1rem; color: #555;">...</p>
+
+        <div class="users-list">
+          <div v-for="user in users" :key="user.id" class="user-card">
+            
+            <div class="user-info-group">
+              <img 
+                :src="user.avatar_url || '../assets/image-placeholder.png'" 
+                alt="Avatar" 
+                class="user-avatar" 
+              />
+              <span class="user-text">{{ user.name || 'Usuário sem nome' }}</span>
+            </div>
+
+            <div class="vertical-divisor"></div>
+
+            <div class="user-info-group">
+              <span class="user-text">{{ user.position || 'Sem cargo' }}</span>
+            </div>
+
+            <div class="dropdown-container">
+              <button class="btn-dots" @click="toggleDropdown(user.id, $event)">&#8942;</button>
+              
+              <div v-if="showDropdownId === user.id" class="dropdown-menu">
+                <button @click="openUserModal('edit', user)" class="dropdown-item">Editar</button>
+                <button @click="confirmDeleteUser(user)" class="dropdown-item text-red">Excluir</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
 
     </div>
   </main>
+
+  <div v-if="showUserModal" class="modal-overlay" @click.self="closeUserModal">
+    <div class="modal-content profile-card">
+      <div class="card-header">
+        <h2>{{ modalMode === 'create' ? 'Criar Novo Usuário' : 'Editar Usuário' }}</h2>
+        <div class="card-divisor"></div>
+      </div>
+
+      <form class="modal-form" @submit.prevent="saveUser">
+        <div class="input-group">
+          <label>Nome Completo:</label>
+          <input type="text" v-model="userForm.name" placeholder="Nome do Usuário" required />
+        </div>
+        
+        <div class="input-group" v-if="modalMode === 'create'">
+          <label>Email:</label>
+          <input type="email" v-model="userForm.email" placeholder="nome@email.com" required />
+        </div>
+
+        <div class="input-group">
+          <label>Cargo:</label>
+          <input type="text" v-model="userForm.position" placeholder="Ex: Professor" required />
+        </div>
+
+        <div class="input-group" v-if="modalMode === 'create'">
+          <label>Senha Provisória:</label>
+          <input type="password" v-model="userForm.password" placeholder="Defina uma senha" required />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" @click="closeUserModal">Cancelar</button>
+          <button type="submit" class="btn-save" :disabled="isSaving">
+            {{ isSaving ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <FooterTemplate />
 </template>
@@ -400,7 +586,7 @@ main {
 /* Botão de Sair */
 .btn-logout {
   width: 100%;
-  background-color: #6dac7e; /* Ajuste para usar var(--color-green) se existir */
+  background-color: #6dac7e;
   color: #ffffff;
   border: none;
   border-radius: 20px;
@@ -497,7 +683,7 @@ main {
   background-color: #f9f9f9;
 }
 
-/* Área de Upload de Imagem */
+/* upload da imagem */
 .image-upload-box {
   border: 1px solid #ccc;
   border-radius: 12px;
@@ -526,7 +712,7 @@ main {
   line-height: 1.4;
 }
 
-/* Botão Salvar Alterações */
+/* botao salvar alteracoes */
 .action-container {
   display: flex;
   justify-content: flex-end;
@@ -549,6 +735,194 @@ main {
 
 .btn-save:hover {
   background-color: #5c966c;
+}
+
+/* aba de usuarios */
+.users-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.users-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  padding: 1.5rem 2.5rem;
+  border: 1px solid #f0f0f0;
+}
+
+.users-header h2 {
+  font-size: 22px;
+  font-weight: 400;
+  font-family: var(--secondary-font);
+  color: #333;
+}
+
+.btn-create-user {
+  background-color: #6dac7e;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 0.8rem 2rem;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--primary-font);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s;
+}
+
+.btn-create-user:hover {
+  background-color: #5c966c;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border-radius: 40px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  padding: 1rem 2.5rem 1rem 1.5rem;
+  border: 1px solid #f0f0f0;
+}
+
+.user-info-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.user-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #f0f0f0;
+}
+
+.user-text {
+  font-family: var(--primary-font);
+  font-size: 16px;
+  color: #333;
+}
+
+.vertical-divisor {
+  width: 1px;
+  height: 30px;
+  background-color: #dcdcdc;
+  margin: 0 2rem;
+}
+
+/* Menu de 3 pontinhos */
+.dropdown-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.btn-dots {
+  background: none;
+  border: none;
+  font-size: 24px;
+  font-weight: bold;
+  color: #555;
+  cursor: pointer;
+  padding: 0 0.5rem;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  z-index: 10;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.dropdown-item {
+  padding: 0.8rem 1.5rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: var(--primary-font);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: #f9f9f9;
+}
+
+.text-red {
+  color: #da4167;
+}
+
+/* modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-content {
+  width: 90%;
+  max-width: 500px;
+  padding: 2.5rem;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-cancel {
+  background-color: #f0f0f0;
+  color: #555;
+  border: none;
+  border-radius: 20px;
+  padding: 0.8rem 1.5rem;
+  font-family: var(--primary-font);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel:hover {
+  background-color: #e4e4e4;
 }
 
 /* Responsividade Básica */
