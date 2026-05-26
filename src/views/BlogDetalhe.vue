@@ -4,6 +4,7 @@ import HeaderTemplate from "../components/HeaderTemplate.vue";
 import FooterTemplate from "../components/FooterTemplate.vue";
 import CardPostSidebar from "../components/CardPostSidebar.vue";
 import CardNewspaperSidebar from "../components/CardNewspaperSidebar.vue";
+import ImageProfile from "../assets/profile.png";
 
 
 export default {
@@ -13,6 +14,7 @@ export default {
     FooterTemplate,
     CardPostSidebar,
     CardNewspaperSidebar,
+    ImageProfile,
   },
   data() {
     return {
@@ -57,16 +59,17 @@ export default {
         const a = (data || [])[0];
         if (a) {
           this.article = {
-            image: a.cover_image_url || "../assets/post.jpg",
-            category: a.category_name || "",
-            categoryColor: a.category_color || "#da4167",
+            image: a.cover_image_url,
+            category: a.category_name,
+            categoryColor: a.category_color,
             title: a.title || "",
             subtitle: a.subtitle || "",
             content: a.content || "",
-            author: a.author_name || "",
-            authorPosition: a.author_position || "",
-            authorImage: a.author_avatar || "../assets/author.png",
+            author: a.author_name || "Desconhecido",
+            authorPosition: a.author_position || "-",
+            authorImage: a.author_avatar || ImageProfile,
             publishedAt: a.published_at || a.created_at || "",
+            updatedAt: a.updated_at || "Data não disponível",
             id: a.id,
           };
         }
@@ -211,6 +214,10 @@ export default {
       <h3 class="title-sidebar">Data da Publicação</h3>
       <div class="date">
         <p>{{ formatDate(article.publishedAt) }}</p>
+      </div>
+      <h3 class="title-sidebar">Última Atualização</h3>
+      <div class="date">
+        <p>{{ formatDate(article.updatedAt) }}</p>
       </div>
       <h3 class="title-sidebar">Encontre Mais...</h3>
       <ul class="list-cards">
@@ -571,7 +578,7 @@ main {
   box-shadow: 0 0 9px rgba(0, 0, 0, 0.11);
   background-color: #fff;
   border-radius: 10px;
-  margin-bottom: 1  rem;
+  margin-bottom: 1rem;
 }
 
 .carousel-title {

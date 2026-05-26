@@ -77,7 +77,7 @@ export default {
           categoryColor: p.category_color || "#da4167",
           title: p.title || "",
           content: p.subtitle || "",
-          author: p.author_name || "",
+          author: p.author_name || "Desconecido",
           status: p.status || "draft",
         }));
       } catch (e) {
@@ -293,7 +293,9 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
+  width: 97%;
+  margin: 0 auto;
+  margin-top: 0.5rem;
   background-color: #fff;
   border-radius: 15px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.09);
@@ -472,12 +474,14 @@ main {
 .container-right {
   flex: 1;
   min-width: 0;
+  margin-bottom: 1rem;
 }
 
 .posts-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
+  margin-top: 0.5rem;
 }
 
 .card {
