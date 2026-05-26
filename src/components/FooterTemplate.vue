@@ -9,12 +9,7 @@
         </div>
         <img src="../assets/icons_highlights/icon8.png" alt="Icone de Estrela" class="star-icon" />
         <p class="text">
-          Lorem Ipsum is simply dummy text of the printing and typesetting
-          industry. Lorem Ipsum has been the industry's standard dummy text ever
-          since the 1500s, when an unknown printer took a galley of type and
-          scrambled it to make a type specimen book. It has survived not only five
-          centuries, but also the leap into electronic typesetting, remaining
-          essentially unchanged.
+          Antenados é um blog escolar dedicado a compartilhar conhecimento, histórias e informações relevantes da comunidade. Oferecemos artigos educativos, notícias escolares através de nossos jornais e um espaço para a troca de experiências entre alunos, professores e família. Nosso objetivo é manter todos informados e conectados com as principais atividades e acontecimentos da escola.
         </p>
       </div>
 
@@ -23,12 +18,12 @@
       <div class="data">
         <p class="subtitle">DÚVIDAS? ENTRE EM CONTATO COM A ESCOLA</p>
         <div class="divisor"></div>
-        <p class="contact">Telefone: (XX) XX XXXXX-XXXX</p>
+        <p class="contact">Telefone: (55) 19 97422-5320</p>
         <div class="divisor"></div>
         <p class="contact">Email: emeb.dirce.antonio@gmail.com</p>
       </div>
 
-      <p class="localization">Parque dos Cocais, Valinhos - SP, 13274-465</p>
+      <p class="localization">Av. Vice-Prefeito Anésio Capovilla, 485 - Jardim Nova Espirito Santo, Valinhos - SP, 13273-180, Brasil</p>
 
     </div>
   </footer>
