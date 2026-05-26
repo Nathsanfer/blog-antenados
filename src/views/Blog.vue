@@ -28,6 +28,12 @@ export default {
     await this.loadCategories();
     await this.loadPosts();
     await this.loadNewspapers();
+    
+    // Verificar se há um query parameter para definir a seção ativa
+    const section = this.$route.query.section;
+    if (section === 'jornais' || section === 'artigos') {
+      this.activeSection = section;
+    }
   },
   methods: {
     async loadCategories() {
@@ -83,7 +89,7 @@ export default {
         const { data, error } = await supabase
           .from("newspapers")
           .select("*")
-          .order("published_at", { ascending: false });
+          .order("created_at", { ascending: false });
 
         if (error) {
           console.error("Erro ao buscar os jornais:", error);
@@ -94,7 +100,7 @@ export default {
           id: n.id,
           title: n.title || "",
           pdfUrl: n.pdf_url || "",
-          publishedAt: n.published_at || "",
+          createdAt: n.created_at || "",
         }));
       } catch (e) {
         console.error("Erro ao buscar os jornais:", e);
@@ -223,7 +229,7 @@ export default {
           :id="newspaper.id"
           :title="newspaper.title"
           :pdf-url="newspaper.pdfUrl"
-          :published-at="newspaper.publishedAt"
+          :created-at="newspaper.createdAt"
         />
       </div>
     </div>

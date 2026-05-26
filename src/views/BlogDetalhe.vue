@@ -19,6 +19,9 @@ export default {
       article: null,
       posts: [],
       newspapers: [],
+      carouselPosts: [],
+      carouselImages: [],
+      currentSlide: 0,
     };
   },
   async mounted() {
@@ -89,11 +92,17 @@ export default {
           title: p.title || "",
         }));
 
+        // Preparar dados para o carrossel
+        this.carouselPosts = this.posts;
+        this.currentSlide = 0;
+
+        // Buscar imagens do carrossel
+        await this.loadPostImages(postId);
+
         // Buscar jornais para a sidebar
         const { data: newspaperData, error: newspaperError } = await supabase
           .from("newspapers")
           .select("*")
-          .order("published_at", { ascending: false })
           .limit(3);  
 
         if (newspaperError) {
@@ -104,8 +113,8 @@ export default {
         this.newspapers = (newspaperData || []).map((n) => ({
           id: n.id,
           title: n.title || "",
-          publishedAt: n.published_at || "",
           pdfUrl: n.pdf_url || "",
+          createdAt: n.created_at || "",
         }));
       } catch (e) {
         console.error("Erro ao buscar os dados do artigo:", e);
@@ -123,6 +132,46 @@ export default {
         month: 'long',
         day: 'numeric'
       });
+    },
+    async loadPostImages(postId) {
+      try {
+        const { data, error } = await supabase
+          .from("post_images")
+          .select("*")
+          .eq("post_id", postId)
+          .order("position", { ascending: true });
+
+        if (error) {
+          console.error("Erro ao buscar imagens do carrossel:", error);
+          return;
+        }
+
+        this.carouselImages = (data || []).map((image) => ({
+          id: image.id,
+          image: image.image_url,
+          position: image.position,
+        }));
+
+        this.currentSlide = 0;
+      } catch (e) {
+        console.error("Erro ao buscar imagens do carrossel:", e);
+      }
+    },
+    nextSlide() {
+      if (this.carouselImages.length > 0) {
+        this.currentSlide = (this.currentSlide + 1) % this.carouselImages.length;
+      }
+    },
+    prevSlide() {
+      if (this.carouselImages.length > 0) {
+        this.currentSlide = (this.currentSlide - 1 + this.carouselImages.length) % this.carouselImages.length;
+      }
+    },
+    goToAllPosts() {
+      this.$router.push('/blog');
+    },
+    goToAllNewspapers() {
+      this.$router.push('/blog?section=jornais');
     },
   },
 };
@@ -179,7 +228,7 @@ export default {
           />
         </template>
       </ul>
-      <button class="btn-sidebar">Ver Mais</button>
+      <button class="btn-sidebar" @click="goToAllPosts">Ver Mais</button>
 
       <h3 class="title-sidebar">Leia Nossos Jornais</h3>
       <ul class="list-newspapers">
@@ -189,12 +238,12 @@ export default {
             :key="newspaper.id"
             :id="newspaper.id"
             :title="newspaper.title"
-            :published-at="newspaper.publishedAt"
             :pdf-url="newspaper.pdfUrl"
+            :created-at="newspaper.createdAt"
           />
         </template>
       </ul>
-      <button class="btn-sidebar">Ver Mais</button>
+      <button class="btn-sidebar" @click="goToAllNewspapers">Ver Mais</button>
     </aside>
     <div class="container-right" v-if="article">
       <div class="container">
@@ -208,6 +257,47 @@ export default {
         </p>
         <div class="divider"></div>
         <p class="content" v-html="formatContent(article.content)"></p>
+      </div>
+
+      <!-- Carrossel -->
+      <div class="carousel-section" v-if="carouselImages.length > 0">
+        <h2 class="carousel-title">Imagens da Postagem</h2>
+        <div class="carousel-container">
+          <button class="carousel-btn carousel-btn-prev" @click="prevSlide" aria-label="Imagem anterior">
+            &#10094;
+          </button>
+
+          <div class="carousel-wrapper">
+            <div 
+              class="carousel-item" 
+              v-for="(image, index) in carouselImages" 
+              :key="image.id"
+              :class="{ active: index === currentSlide }"
+            >
+              <div class="carousel-panel">
+                <div class="carousel-image-container">
+                  <img :src="image.image" :alt="`Imagem ${image.position}`" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="carousel-btn carousel-btn-next" @click="nextSlide" aria-label="Próxima imagem">
+            &#10095;
+          </button>
+        </div>
+
+        <!-- Indicadores (pontos) -->
+        <div class="carousel-indicators" v-if="carouselImages.length > 1">
+          <button 
+            v-for="(image, index) in carouselImages" 
+            :key="index"
+            class="indicator"
+            :class="{ active: index === currentSlide }"
+            @click="currentSlide = index"
+            :aria-label="`Ir para imagem ${index + 1}`"
+          ></button>
+        </div>
       </div>
     </div>
   </main>
@@ -471,5 +561,202 @@ main {
   color: #555;
   line-height: 1.8;
   white-space: pre-wrap;
+}
+
+/* ===== Carousel ===== */
+.carousel-section {
+  width: 98%;
+  margin: 2rem auto 0;
+  padding: 1.2rem;
+  box-shadow: 0 0 9px rgba(0, 0, 0, 0.11);
+  background-color: #fff;
+  border-radius: 10px;
+  margin-bottom: 1  rem;
+}
+
+.carousel-title {
+  font-size: 24px;
+  font-weight: 500;
+  font-family: var(--secondary-font);
+  color: #000;
+  margin: 0 0 1.5rem;
+  text-align: center;
+}
+
+.carousel-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  position: relative;
+  min-height: 350px;
+}
+
+.carousel-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-green);
+  color: #fff;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.carousel-btn:hover {
+  background-color: #6fa949;
+  transform: scale(1.1);
+}
+
+.carousel-btn-prev,
+.carousel-btn-next {
+  position: static;
+}
+
+.carousel-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 320px;
+  border-radius: 10px;
+}
+
+.carousel-item {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.carousel-item.active {
+  opacity: 1;
+  position: relative;
+  pointer-events: auto;
+}
+
+.carousel-panel {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.carousel-image-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carousel-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 28px;
+  font-weight: 500;
+  font-family: var(--secondary-font);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-placeholder p {
+  margin: 0;
+}
+
+.carousel-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background-color: #ddd;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.indicator.active {
+  background-color: var(--color-green);
+}
+
+.indicator:hover {
+  background-color: #bbb;
+}
+
+@media (max-width: 768px) {
+  .carousel-container {
+    min-height: 280px;
+  }
+
+  .carousel-wrapper {
+    min-height: 250px;
+  }
+
+  .carousel-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 16px;
+  }
+
+  .carousel-placeholder {
+    font-size: 24px;
+  }
+
+  .carousel-title {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .carousel-section {
+    padding: 1rem;
+  }
+
+  .carousel-container {
+    gap: 0.5rem;
+    min-height: 240px;
+  }
+
+  .carousel-wrapper {
+    min-height: 210px;
+  }
+
+  .carousel-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .carousel-placeholder {
+    font-size: 20px;
+  }
+
+  .carousel-title {
+    font-size: 18px;
+  }
 }
 </style>

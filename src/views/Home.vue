@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import FooterTemplate from "../components/FooterTemplate.vue";
 import CardPost from "../components/CardPost.vue";
@@ -7,9 +8,18 @@ import CardNewspaper from "../components/CardNewspaper.vue";
 import { supabase } from "../composables/useSupabase.js";
 import { CATEGORY_ICONS } from "../lib/categories.ts";
 
+const router = useRouter();
 const posts = ref([]);
 const newspapers = ref([]);
 const categories = ref([]);
+
+function goToAllPosts() {
+  router.push('/blog');
+}
+
+function goToAllNewspapers() {
+  router.push('/blog?section=jornais');
+}
 
 onMounted(async () => {
   await fetchCategories();
@@ -73,8 +83,7 @@ async function fetchNewspapers() {
     const { data, error } = await supabase
       .from("newspapers")
       .select("*")
-      .eq("status", "published")
-      .order("published_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(3);
 
     if (error) {
@@ -86,7 +95,7 @@ async function fetchNewspapers() {
       id: n.id,
       title: n.title || "",
       status: n.status || "draft",
-      publishedAt: n.published_at || "",
+      createdAt: n.created_at || "",
       pdfUrl: n.pdf_url || "",
       showStatus: false,
     }));
@@ -225,15 +234,13 @@ async function fetchNewspapers() {
           :key="newspaper.id"
           :id="newspaper.id"
           :title="newspaper.title"
-          :status="newspaper.status"
-          :published-at="newspaper.publishedAt"
+          :created-at="newspaper.createdAt"
           :pdf-url="newspaper.pdfUrl"
-          :show-status="newspaper.showStatus"
         />
       </div>
-      <router-link class="link-btn" to="#">
-        <button class="btn btn-primary">Ver Mais Jornais</button>
-      </router-link>
+      <button class="btn btn-primary" @click="goToAllNewspapers">
+        Ver Mais Jornais
+      </button>
     </section>
 
     <section class="recent-posts">
@@ -260,9 +267,9 @@ async function fetchNewspapers() {
           :show-status="false"
         />
       </div>
-      <router-link class="link-btn" to="#">
-        <button class="btn btn-primary">Ver Mais Postagens</button>
-      </router-link>
+      <button class="btn btn-primary" @click="goToAllPosts">
+        Ver Mais Postagens
+      </button>
     </section>
   </main>
 

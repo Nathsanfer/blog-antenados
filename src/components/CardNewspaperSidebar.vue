@@ -10,7 +10,7 @@ export default {
       type: String,
       default: "",
     },
-    publishedAt: {
+    createdAt: {
       type: String,
       default: "",
     },
@@ -26,8 +26,8 @@ export default {
   },
   computed: {
     formattedDate() {
-      if (!this.publishedAt) return "";
-      const date = new Date(this.publishedAt);
+      if (!this.createdAt) return "";
+      const date = new Date(this.createdAt);
       return date.toLocaleDateString("pt-BR", {
         year: "numeric",
         month: "short",
@@ -54,7 +54,7 @@ export default {
       <div class="newspaper-sidebar-card__icon">📰</div>
       <div class="newspaper-sidebar-card__info">
         <h4 class="newspaper-sidebar-card__title">{{ title }}</h4>
-        <p class="newspaper-sidebar-card__date" v-if="publishedAt">
+        <p class="newspaper-sidebar-card__date" v-if="createdAt">
           {{ formattedDate }}
         </p>
         <p class="newspaper-sidebar-card__action">Abrir PDF</p>
