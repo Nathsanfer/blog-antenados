@@ -3,6 +3,7 @@ import FooterTemplate from "../components/FooterTemplate.vue";
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import { supabase } from "../composables/useSupabase";
 import { useRouter } from 'vue-router';
+import PerfilImagem from "../assets/profile.png";
 
 export default {
   name: "Perfil",
@@ -155,7 +156,7 @@ export default {
         const updates = {
           name: this.userData.name,
           position: this.userData.position,
-          avatar_url: this.userData.avatar_url,
+          avatar_url: this.userData.avatar_url || PerfilImagem,
           updated_at: new Date()
         };
 
@@ -166,7 +167,7 @@ export default {
 
         if (dbError) throw dbError;
 
-        alert("Perfil atualizado com sucesso!");
+        console("Perfil atualizado com sucesso!");
         this.userData.password = "";
 
       } catch (error) {
@@ -243,11 +244,26 @@ export default {
         this.isSaving = true;
         
         if (this.modalMode === 'create') {
-          // Lógica de criação
-          alert("Lembrete: Para criar usuários Auth via front-end sem deslogar, é necessário chamar uma Edge Function do Supabase aqui.");
-          // Exemplo de payload p/ Edge Function: { name: this.userForm.name, email: this.userForm.email, password: this.userForm.password, position: this.userForm.position }
+          // Lógica de CRIAÇÃO chamando a Edge Function
+          const { data, error } = await supabase.functions.invoke('manage-users', {
+            body: {
+              action: 'create',
+              user: {
+                name: this.userForm.name,
+                email: this.userForm.email,
+                password: this.userForm.password,
+                position: this.userForm.position
+              }
+            }
+          });
+
+          if (error) throw error;
+          if (data && data.error) throw new Error(data.error);
+
+          console.log("Usuário criado com sucesso!");
+
         } else {
-          // Lógica de edição (Apenas atualiza a tabela pública)
+          // Lógica de EDIÇÃO (Continua atualizando direto a tabela pública)
           const { error } = await supabase
             .from('users')
             .update({
@@ -264,7 +280,7 @@ export default {
         this.closeUserModal();
       } catch (error) {
         console.error("Erro ao salvar usuário:", error.message);
-        alert("Ocorreu um erro ao salvar o usuário.");
+        alert(`Ocorreu um erro: ${error.message}`);
       } finally {
         this.isSaving = false;
       }
@@ -277,17 +293,27 @@ export default {
       
       if (confirm) {
         try {
-          // Lógica de exclusão
-          alert("Lembrete: Para excluir um usuário do sistema (Auth + Public) com segurança, utilize uma Edge Function.");
+          this.loading = true;
+
+          // Lógica de EXCLUSÃO chamando a Edge Function
+          const { data, error } = await supabase.functions.invoke('manage-users', {
+            body: { 
+              action: 'delete', 
+              user: { id: user.id } 
+            }
+          });
+
+          if (error) throw error;
+          if (data && data.error) throw new Error(data.error);
           
-          /* Código apenas para a tabela pública (falhará se tiver FK restrita ao Auth):
-          const { error } = await supabase.from('users').delete().eq('id', user.id);
-          if (error) throw error; 
-          */
-          
+          console.log("Usuário excluído com sucesso!");
           await this.fetchUsersList();
+
         } catch (error) {
           console.error("Erro ao excluir usuário:", error.message);
+          alert(`Erro ao excluir: ${error.message}`);
+        } finally {
+          this.loading = false;
         }
       }
     }
@@ -424,10 +450,18 @@ export default {
             
             <div class="user-info-group">
               <img 
-                :src="user.avatar_url || '../assets/image-placeholder.png'" 
-                alt="Avatar" 
-                class="user-avatar" 
+                v-if="user.avatar_url"
+                :src="user.avatar_url"
+                alt="Avatar do usuário"
+                class="user-avatar"
               />
+              <img
+                v-else
+                src="../assets/profile.png"
+                alt="Avatar padrão"
+                class="user-avatar"
+              />
+              
               <span class="user-text">{{ user.name || 'Usuário sem nome' }}</span>
             </div>
 
