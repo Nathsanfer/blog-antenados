@@ -192,7 +192,7 @@ const logout = async () => {
   }
 
   .login-button {
-    padding: 6px 20px;
+    padding: 10px 20px;
     font-size: 12px;
   }
 
@@ -254,11 +254,12 @@ const logout = async () => {
   }
   
   .title {
-    font-size: 14px;
+    font-size: 10px;
+    font-weight: bold;
   }
 
   .nav-link {
-    font-size: 9px;
+    font-size: 13px;
   }
 
   .nav-link::after {
@@ -266,17 +267,17 @@ const logout = async () => {
   }
 
   .login-button {
-    padding: 6px 8px;
-    font-size: 8px;
+    padding: 10px 12px;
+    font-size: 10px;
   }
 
   .profile-button {
-    padding: 6px 8px;
+    padding: 7px 9px;
     font-size: 8px;
   }
 
   .logout-button {
-    padding: 6px 6px;
+    padding: 7px 9px;
     font-size: 8px;
   }
 

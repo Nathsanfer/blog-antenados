@@ -667,7 +667,6 @@ main {
     margin-bottom: 3rem;
   }
 
-  /* Posts: 1 column on mobile */
   .posts-grid {
     grid-template-columns: 1fr;
     max-width: 420px;

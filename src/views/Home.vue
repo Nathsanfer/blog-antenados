@@ -896,7 +896,7 @@ async function fetchNewspapers() {
   }
 
   .categories {
-    padding: 0 1.25rem;
+    padding: 0 1rem;
   }
 
   .title1 {
@@ -904,12 +904,30 @@ async function fetchNewspapers() {
   }
 
   .list-themes {
-    gap: 1.5rem;
+    gap: 2rem;
+  }
+
+  .container-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .name-theme {
+    font-size: 10px;
+    width: 60px;
+  }
+
+  .decoration {
+    max-width: 200px;
+    margin: 2rem auto 0;
+    padding: 0 1rem;
+    margin-left: 0.8rem;
   }
 
   .objectives {
     padding: 0 1.25rem;
     gap: 2rem;
+    margin: 2rem auto 0;
   }
 
   .recent-posts {
@@ -935,11 +953,13 @@ async function fetchNewspapers() {
   }
 
   .recent-posts-subtitle {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .newspapers-subtitle {
-    font-size: 22px;
+    font-size: 10px;
+    text-align: center;
+    width: 100%;
   }
 
   .icon {
