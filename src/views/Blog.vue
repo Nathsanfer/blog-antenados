@@ -662,6 +662,11 @@ main {
     font-size: 22px;
   }
 
+  .title-sidebar {
+    font-size: 20px;
+    margin-bottom: 1.4rem;
+  }
+
   main {
     width: 92%;
     margin-bottom: 3rem;

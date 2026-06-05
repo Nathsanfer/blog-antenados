@@ -433,4 +433,121 @@ main {
 .posts-grid:has(.category-card) {
   grid-template-columns: 1fr;
 }
+
+/* ===== MEDIA QUERIES ===== */
+
+/* --- Adaptação para Tablets (Garante fluidez antes dos 480px) --- */
+@media (max-width: 768px) {
+  main {
+    flex-direction: column; /* Empilha o menu e o conteúdo */
+    gap: 1.5rem;
+  }
+
+  .container-left {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  .option {
+    margin-bottom: 0;
+    flex: 1; /* Faz os botões dividirem o espaço igualmente */
+  }
+
+  .posts-grid {
+    grid-template-columns: repeat(2, 1fr); /* Reduz para 2 colunas no tablet */
+  }
+}
+
+/* --- Foco total em Smartphones (480px ou menos) --- */
+@media (max-width: 480px) {
+  /* Ocultar elementos decorativos do Desktop */
+  .icon-desktop {
+    display: none !important;
+  }
+
+  /* Cabeçalho da Página */
+  .header-page {
+    gap: 0.5rem;
+    width: 95%;
+  }
+
+  .header-page h1 {
+    font-size: 22px;
+  }
+
+  .header-page img {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Layout Principal */
+  main {
+    width: 95%;
+    margin: 1rem auto 2rem;
+    gap: 1rem;
+  }
+
+  /* Menu transformado em Abas */
+  .container-left {
+    flex-wrap: wrap; /* Permite que os botões quebrem linha se necessário */
+    gap: 0.5rem;
+  }
+
+  .option {
+    flex: 1 1 30%; /* Os botões tentam ocupar 30%, mas crescem se tiver espaço */
+    min-width: 100px;
+    border-radius: 12px;
+  }
+
+  .option h3 {
+    font-size: 14px;
+    padding: 0.6rem 0;
+  }
+
+  /* Container da Direita (Conteúdo) */
+  .container-right {
+    width: 100%;
+  }
+
+  /* Barra de Totalizadores e Botão de Ação */
+  .total-items {
+    flex-direction: column; /* Coloca o texto em cima e o botão embaixo */
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 15px;
+    text-align: center;
+  }
+
+  .total-items p {
+    font-size: 16px;
+    margin: 0;
+  }
+
+  .total-items button {
+    width: 100%; /* Botão ocupa a largura total para facilitar o clique no mobile */
+    padding: 0.8rem;
+    font-size: 15px;
+  }
+
+  /* Filtros de Status (Rascunho, Publicado, etc) */
+  .status-filters {
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .status-filter {
+    flex: 1 1 45%; /* Coloca dois filtros por linha */
+    text-align: center;
+    font-size: 12px;
+    padding: 0.5rem;
+  }
+
+  /* Grade de Cards */
+  .posts-grid {
+    grid-template-columns: 1fr; /* Coloca 1 card por linha no celular */
+    gap: 1rem;
+  }
+}
 </style>

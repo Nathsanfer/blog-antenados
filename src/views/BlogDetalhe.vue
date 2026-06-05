@@ -714,7 +714,19 @@ main {
   background-color: #bbb;
 }
 
+/* ===== MEDIA QUERIES ===== */
+
+/* Ajuste opcional para Tablets (Garante que não quebre antes de chegar em 480px) */
 @media (max-width: 768px) {
+  main {
+    flex-direction: column-reverse;
+    gap: 2rem;
+  }
+
+  .container-left {
+    width: 100%;
+  }
+
   .carousel-container {
     min-height: 280px;
   }
@@ -738,32 +750,109 @@ main {
   }
 }
 
+/* Foco total em Smartphones (480px ou menos) */
 @media (max-width: 480px) {
-  .carousel-section {
+  /* --- Layout Estrutural --- */
+  main {
+    flex-direction: column-reverse; /* O artigo (.container-right) sobe e a sidebar vai para o final */
+    width: 92%;
+    gap: 1.5rem;
+    margin: 1rem auto 2rem;
+  }
+
+  .container-left {
+    width: 100%; /* Ocupa a largura total da tela */
+  }
+
+  .container-right {
+    width: 100%;
+  }
+
+  /* --- Ocultar elementos de Desktop --- */
+  .icon-desktop {
+    display: none !important;
+  }
+
+  /* --- Cabeçalho da Página (Artigo) --- */
+  .header-page {
+    gap: 0.5rem;
+    width: 92%;
+  }
+
+  .header-page h1 {
+    font-size: 22px; /* Reduz o título para não quebrar linha bruscamente */
+  }
+
+  .header-page img {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* --- Componentes da Sidebar adaptados --- */
+  .author, .date, .card {
+    width: 100%;
+    height: auto; /* Troca altura fixa por dinâmica para evitar que textos longos cortem */
+    min-height: 50px;
+    padding: 0.5rem;
+  }
+
+  /* --- Caixa do Artigo Principal --- */
+  .container {
+    width: 100%;
     padding: 1rem;
   }
 
+  .container img {
+    height: 180px; /* Reduz a altura da imagem de capa para fazer sentido no mobile */
+  }
+
+  .title-article {
+    font-size: 22px;
+    line-height: 1.3;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    margin-top: 0.6rem;
+  }
+
+  .divider {
+    margin: 1rem 0;
+  }
+
+  .content {
+    font-size: 14px;
+    line-height: 1.7; /* Mantém uma leitura confortável */
+  }
+
+  /* --- Seção do Carrossel --- */
+  .carousel-section {
+    padding: 1rem;
+    width: 100%;
+  }
+
   .carousel-container {
-    gap: 0.5rem;
-    min-height: 240px;
+    gap: 0.3rem;
+    min-height: 200px;
   }
 
   .carousel-wrapper {
-    min-height: 210px;
+    min-height: 180px;
   }
 
   .carousel-btn {
     width: 30px;
     height: 30px;
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .carousel-placeholder {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .carousel-title {
     font-size: 18px;
+    margin-bottom: 1rem;
   }
 }
 </style>

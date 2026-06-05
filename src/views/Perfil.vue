@@ -974,4 +974,28 @@ main {
     gap: 1.5rem;
   }
 }
+
+@media (max-width: 480px) {
+  .header-page {
+    gap: 0.6rem;
+  }
+
+  .header-page img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .header-page h1 {
+    font-size: 22px;
+  }
+
+  .icon-desktop {
+    display: none;
+  }
+
+  .btn-logout {
+    padding: 0.5rem 0;
+    font-size: 14px;
+  }
+}
 </style>
