@@ -892,7 +892,8 @@ async function fetchNewspapers() {
 /* Mobile */
 @media (max-width: 480px) {
   .banner img {
-    height: 190px;
+    height: 205px;
+    margin-bottom: -1.2rem;
   }
 
   .categories {
@@ -932,7 +933,7 @@ async function fetchNewspapers() {
 
   .recent-posts {
     padding: 0 1.25rem;
-    margin-bottom: 4rem;
+    margin-bottom: 2rem;
   }
 
   .posts {
@@ -942,7 +943,8 @@ async function fetchNewspapers() {
 
   .newspapers {
     padding: 0 1.25rem;
-    margin-bottom: 4rem;
+    margin-bottom: 3rem;
+    margin-top: 2rem;
   }
 
   .newspapers-grid {
@@ -953,11 +955,13 @@ async function fetchNewspapers() {
   }
 
   .recent-posts-subtitle {
-    font-size: 12px;
+    font-size: 13px;
+    text-align: center;
+    width: 100%;
   }
 
   .newspapers-subtitle {
-    font-size: 10px;
+    font-size: 13px;
     text-align: center;
     width: 100%;
   }
