@@ -121,10 +121,15 @@ export default {
     <div class="pdf-modal" @click.stop>
       <div class="pdf-modal-header">
         <h3>{{ title }}</h3>
-        <button class="close-btn" @click="closePdfModal">✕</button>
+        <div class="header-actions">
+          <a :href="pdfUrl" target="_blank" class="open-native-btn">
+            Abrir PDF
+          </a>
+          <button class="close-btn" @click="closePdfModal">✕</button>
+        </div>
       </div>
       <iframe
-        :src="`${pdfUrl}#toolbar=1`"
+        :src="`${pdfUrl}#toolbar=1&view=FitH`"
         class="pdf-viewer"
         title="Visualizador de PDF"
       ></iframe>
@@ -342,7 +347,30 @@ export default {
   border: none;
   width: 100%;
 }
+/* --- Estilos do novo botão no Header do Modal --- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 
+.open-native-btn {
+  background-color: var(--color-green, #6dac7e);
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-family: var(--primary-font);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.open-native-btn:hover {
+  background-color: #558a62;
+}
+
+/* ===== MEDIA QUERIES ===== */
 @media (max-width: 768px) {
   .pdf-modal {
     width: 95%;
@@ -351,6 +379,47 @@ export default {
 
   .pdf-modal-header h3 {
     font-size: 16px;
+  }
+}
+
+/* --- Foco total em Smartphones (480px ou menos) --- */
+@media (max-width: 480px) {
+  /* Ajustes do Card */
+  .newspaper-cover {
+    height: 140px; /* Reduz um pouco a altura da capa para equilibrar no mobile */
+  }
+
+  .title-newspaper {
+    font-size: 18px;
+  }
+
+  .pdf-modal-overlay {
+    padding: 0; 
+  }
+
+  .pdf-modal {
+    width: 90%;
+    height: 600px; 
+    max-height: 100vh;
+    max-width: 100%;
+    border-radius: 20px;
+  }
+
+  .pdf-modal-header {
+    padding: 0.8rem 1rem;
+  }
+
+  .pdf-modal-header h3 {
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 50%; 
+  }
+
+  .open-native-btn {
+    font-size: 12px;
+    padding: 0.4rem 0.6rem;
   }
 }
 </style>

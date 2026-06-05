@@ -67,10 +67,15 @@ export default {
     <div class="pdf-modal" @click.stop>
       <div class="pdf-modal-header">
         <h3>{{ title }}</h3>
-        <button class="close-btn" @click="closePdfModal">✕</button>
+        <div class="header-actions">
+          <a :href="pdfUrl" target="_blank" class="open-native-btn">
+            Abrir PDF
+          </a>
+          <button class="close-btn" @click="closePdfModal">✕</button>
+        </div>
       </div>
       <iframe
-        :src="`${pdfUrl}#toolbar=1`"
+        :src="`${pdfUrl}#toolbar=1&view=FitH`"
         class="pdf-viewer"
         title="Visualizador de PDF"
       ></iframe>
@@ -171,49 +176,140 @@ export default {
   z-index: 1000;
 }
 
+.pdf-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
 .pdf-modal {
-  width: 90%;
-  height: 90%;
-  background: #fff;
+  background: white;
   border-radius: 12px;
+  width: 90%;
+  max-width: 900px;
+  height: 85vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  max-width: 1000px;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .pdf-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
-  flex-shrink: 0;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ececec;
+  background: #f9f9f9;
 }
 
 .pdf-modal-header h3 {
   margin: 0;
   font-size: 18px;
   font-family: var(--secondary-font);
-  font-weight: 500;
+  color: #333;
+  flex: 1;
 }
 
 .close-btn {
   background: none;
   border: none;
   font-size: 24px;
+  color: #999;
   cursor: pointer;
-  color: #666;
-  transition: color 0.2s ease;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .close-btn:hover {
-  color: #000;
+  background-color: #f0f0f0;
+  color: #333;
 }
 
 .pdf-viewer {
   flex: 1;
   border: none;
-  border-radius: 0 0 12px 12px;
+  width: 100%;
 }
+/* --- Estilos do novo botão no Header do Modal --- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.open-native-btn {
+  background-color: var(--color-green, #6dac7e);
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-family: var(--primary-font);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.open-native-btn:hover {
+  background-color: #558a62;
+}
+
+@media (max-width: 480px) {
+
+  .pdf-modal-overlay {
+    padding: 0; 
+  }
+
+  .pdf-modal {
+    width: 90%;
+    height: 600px; 
+    max-height: 100vh;
+    max-width: 100%;
+    border-radius: 20px;
+  }
+
+  .pdf-modal-header {
+    padding: 0.8rem 1rem;
+  }
+
+  .pdf-modal-header h3 {
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 50%; 
+  }
+
+  .open-native-btn {
+    font-size: 12px;
+    padding: 0.4rem 0.6rem;
+  }
+}
+
 </style>
