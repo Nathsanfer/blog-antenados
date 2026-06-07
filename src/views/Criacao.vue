@@ -23,37 +23,23 @@ export default {
       activeSection: "artigos",
       activeStatusFilter: "todos",
 
-      // Controle do Modal
+      // Controle do Modal de Criação / Edição
       showModal: false,
       isSubmitting: false,
+      isEditing: false,
+      editingId: null,
+      isTeacherLogged: false,
 
-      // Arquivos selecionados pelo usuário
+      // Arquivos selecionados pelo usuário para upload
       imageFile: null,
       pdfFile: null,
 
-      // Formulários de Criação (sem os campos de URL de texto bruto)
-      formPost: {
-        title: "",
-        subtitle: "",
-        content: "",
-        category_id: "",
-        status: "draft"
-      },
-      formNewspaper: {
-        title: ""
-      },
-      formCategory: {
-        name: "",
-        description: "",
-        color: "#6dac7e",
-        icon: "article"
-      },
+      // Modelos de dados dos Formulários
+      formPost: { title: "", subtitle: "", content: "", category_id: "", status: "draft" },
+      formNewspaper: { title: "" },
+      formCategory: { name: "", description: "", color: "#6dac7e", icon: "article" },
 
-      statusLabels: {
-        draft: "Rascunho",
-        published: "Publicado",
-        archived: "Arquivado",
-      },
+      statusLabels: { draft: "Rascunho", published: "Publicado", archived: "Arquivado" },
       statusFilters: [
         { label: "Todos", value: "todos" },
         { label: "Rascunho", value: "draft" },
@@ -61,18 +47,9 @@ export default {
         { label: "Arquivado", value: "archived" },
       ],
       sections: {
-        artigos: {
-          label: "Artigos",
-          actionLabel: "Criar Artigo",
-        },
-        jornais: {
-          label: "Jornais",
-          actionLabel: "Criar Jornal",
-        },
-        categorias: {
-          label: "Categorias",
-          actionLabel: "Criar Categoria",
-        },
+        artigos: { label: "Artigos", actionLabel: "Artigo" },
+        jornais: { label: "Jornais", actionLabel: "Jornal" },
+        categorias: { label: "Categorias", actionLabel: "Categoria" },
       },
     };
   },
@@ -83,9 +60,7 @@ export default {
     filteredItems() {
       if (this.activeSection === "artigos") {
         const items = this.posts;
-        if (this.activeStatusFilter === "todos") {
-          return items;
-        }
+        if (this.activeStatusFilter === "todos") return items;
         return items.filter((item) => item.status === this.activeStatusFilter);
       } else if (this.activeSection === "jornais") {
         return this.newspapers;
@@ -99,12 +74,29 @@ export default {
     },
   },
   async mounted() {
+    await this.checkUserPermissions();
     await this.loadPosts();
     await this.loadNewspapers();
     await this.loadCategories();
   },
   methods: {
-    // --- Captura de Arquivos nos Inputs ---
+    async checkUserPermissions() {
+      try {
+        // verifica se existe uma sessão ativa no Supabase Auth
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (error || !user) {
+          this.isTeacherLogged = false;
+        } else {
+          // tem usuário logado
+          this.isTeacherLogged = true;
+        }
+      } catch (error) {
+        console.error("Erro ao verificar sessão:", error);
+        this.isTeacherLogged = false;
+      }
+    },
+    // Captura de Arquivos nos Inputs Customizados
     handleImageChange(event) {
       this.imageFile = event.target.files[0];
     },
@@ -112,7 +104,7 @@ export default {
       this.pdfFile = event.target.files[0];
     },
 
-    // --- Métodos de Carregamento (Leitura) ---
+    // Métodos de Carregamento
     async loadPosts() {
       try {
         const { data, error } = await supabase
@@ -128,6 +120,8 @@ export default {
           category: p.categories?.name || "",
           categoryColor: p.categories?.color || "#da4167",
           title: p.title || "",
+          subtitle: p.subtitle || "",
+          fullContent: p.content || "",
           content: p.subtitle || "",
           author: p.users?.name || "Anônimo",
           status: p.status || "draft",
@@ -178,14 +172,78 @@ export default {
       }
     },
 
-    // --- Métodos de Controle do Modal ---
+    // Interpolação de Ações enviadas pelos Cards (Editar/Excluir)
+    async handleItemAction({ action, id }) {
+      if (action === 'edit') {
+        this.openEditModal(id);
+      } else if (action === 'delete') {
+        await this.deleteItem(id);
+      }
+    },
+
+    async deleteItem(id) {
+      const confirmacao = confirm("Tem a certeza que deseja excluir este item permanentemente?");
+      if (!confirmacao) return;
+
+      try {
+        let table = this.activeSection === 'artigos' ? 'posts' :
+          this.activeSection === 'jornais' ? 'newspapers' : 'categories';
+
+        const { error } = await supabase.from(table).delete().eq('id', id);
+        if (error) throw error;
+
+        // Recarrega apenas a seção ativa após deletar
+        if (this.activeSection === 'artigos') await this.loadPosts();
+        if (this.activeSection === 'jornais') await this.loadNewspapers();
+        if (this.activeSection === 'categorias') await this.loadCategories();
+      } catch (error) {
+        alert("Erro ao excluir: " + error.message);
+      }
+    },
+
+    // Métodos de Controle de Exibição do Modal
     openModal() {
+      this.isEditing = false;
+      this.editingId = null;
       this.showModal = true;
     },
+
+    openEditModal(id) {
+      this.isEditing = true;
+      this.editingId = id;
+
+      if (this.activeSection === 'artigos') {
+        const item = this.posts.find(p => p.id === id);
+        const cat = this.categories.find(c => c.name === item.category);
+        this.formPost = {
+          title: item.title,
+          subtitle: item.subtitle,
+          content: item.fullContent,
+          category_id: cat ? cat.id : "",
+          status: item.status
+        };
+      } else if (this.activeSection === 'jornais') {
+        const item = this.newspapers.find(n => n.id === id);
+        this.formNewspaper = { title: item.title };
+      } else if (this.activeSection === 'categorias') {
+        const item = this.categories.find(c => c.id === id);
+        this.formCategory = {
+          name: item.name,
+          description: item.description,
+          color: item.color,
+          icon: item.icon
+        };
+      }
+      this.showModal = true;
+    },
+
     closeModal() {
       this.showModal = false;
+      this.isEditing = false;
+      this.editingId = null;
       this.resetForms();
     },
+
     resetForms() {
       this.formPost = { title: "", subtitle: "", content: "", category_id: "", status: "draft" };
       this.formNewspaper = { title: "" };
@@ -193,98 +251,100 @@ export default {
       this.imageFile = null;
       this.pdfFile = null;
 
-      // Limpa os inputs de arquivo no DOM usando as refs
+      // Reseta os inputs nativos escondidos no DOM através das referências (refs)
       if (this.$refs.imageInput) this.$refs.imageInput.value = "";
       if (this.$refs.pdfInput) this.$refs.pdfInput.value = "";
     },
 
-    // --- Métodos de Gravação (Supabase com Storage) ---
+    // Auxiliar de Upload para o Supabase Storage
+    async uploadFileToStorage(file, folder) {
+      const fileExt = file.name.split('.').pop();
+      // Garante que o arquivo possua um nome inteiramente único com timestamp e aleatoriedade
+      const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
+      const filePath = `${folder}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('port-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Recupera o link público estruturado do bucket público
+      const { data: urlData } = supabase.storage
+        .from('port-images')
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    },
+
+    // Operação de Persistência Principal Salvar Criado / Salvar Editado
     async handleCreate() {
       this.isSubmitting = true;
       try {
         if (this.activeSection === "artigos") {
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error("Usuário não autenticado.");
+          if (!user && !this.isEditing) throw new Error("Usuário não autenticado.");
 
-          let uploadedImageUrl = null;
+          let payload = {
+            title: this.formPost.title,
+            subtitle: this.formPost.subtitle,
+            content: this.formPost.content,
+            category_id: this.formPost.category_id || null,
+            status: this.formPost.status,
+          };
 
-          // Se houver uma imagem selecionada, faz o upload primeiro
+          // Atribui o autor apenas no momento de inserção (novo post)
+          if (!this.isEditing) payload.author_id = user.id;
+
+          // Processamento do upload se um arquivo foi selecionado
           if (this.imageFile) {
-            const fileExt = this.imageFile.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
-            const filePath = `covers/${fileName}`; // Organizado em uma subpasta 'covers'
-
-            const { error: uploadError } = await supabase.storage
-              .from('port-images')
-              .upload(filePath, this.imageFile);
-
-            if (uploadError) throw uploadError;
-
-            // Pega a URL pública gerada
-            const { data: urlData } = supabase.storage
-              .from('port-images')
-              .getPublicUrl(filePath);
-
-            uploadedImageUrl = urlData.publicUrl;
+            payload.cover_image_url = await this.uploadFileToStorage(this.imageFile, 'covers');
+          } else if (!this.isEditing) {
+            throw new Error("Por favor, selecione uma imagem de capa.");
           }
 
-          // Insere os dados na tabela do banco
-          const { error } = await supabase.from("posts").insert([
-            {
-              title: this.formPost.title,
-              subtitle: this.formPost.subtitle,
-              content: this.formPost.content,
-              cover_image_url: uploadedImageUrl,
-              category_id: this.formPost.category_id || null,
-              status: this.formPost.status,
-              author_id: user.id
-            }
-          ]);
-          if (error) throw error;
+          if (this.isEditing) {
+            const { error } = await supabase.from("posts").update(payload).eq('id', this.editingId);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("posts").insert([payload]);
+            if (error) throw error;
+          }
           await this.loadPosts();
 
         } else if (this.activeSection === "jornais") {
-          if (!this.pdfFile) throw new Error("Por favor, selecione um arquivo PDF para o jornal.");
+          let payload = { title: this.formNewspaper.title };
 
-          let uploadedPdfUrl = null;
+          if (this.pdfFile) {
+            payload.pdf_url = await this.uploadFileToStorage(this.pdfFile, 'pdfs');
+          } else if (!this.isEditing) {
+            throw new Error("Por favor, selecione um arquivo PDF para o jornal.");
+          }
 
-          // Upload do arquivo PDF (Salvaremos no bucket port-images dentro de uma pasta 'pdfs')
-          const fileExt = this.pdfFile.name.split('.').pop();
-          const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
-          const filePath = `pdfs/${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('port-images') // Reutilizando o bucket port-images, mas em outra pasta
-            .upload(filePath, this.pdfFile);
-
-          if (uploadError) throw uploadError;
-
-          const { data: urlData } = supabase.storage
-            .from('port-images')
-            .getPublicUrl(filePath);
-
-          uploadedPdfUrl = urlData.publicUrl;
-
-          // Insere na tabela newspapers
-          const { error } = await supabase.from("newspapers").insert([
-            {
-              title: this.formNewspaper.title,
-              pdf_url: uploadedPdfUrl
-            }
-          ]);
-          if (error) throw error;
+          if (this.isEditing) {
+            const { error } = await supabase.from("newspapers").update(payload).eq('id', this.editingId);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("newspapers").insert([payload]);
+            if (error) throw error;
+          }
           await this.loadNewspapers();
 
         } else if (this.activeSection === "categorias") {
-          const { error } = await supabase.from("categories").insert([
-            {
-              name: this.formCategory.name,
-              description: this.formCategory.description,
-              color: this.formCategory.color,
-              icon: this.formCategory.icon
-            }
-          ]);
-          if (error) throw error;
+          let payload = {
+            name: this.formCategory.name,
+            description: this.formCategory.description,
+            color: this.formCategory.color,
+            icon: this.formCategory.icon
+          };
+
+          if (this.isEditing) {
+            const { error } = await supabase.from("categories").update(payload).eq('id', this.editingId);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("categories").insert([payload]);
+            if (error) throw error;
+          }
           await this.loadCategories();
         }
 
@@ -338,7 +398,10 @@ export default {
     <div class="container-right">
       <div class="total-items">
         <p>{{ totalItemsLabel }}</p>
-        <button @click="openModal">{{ currentSection.actionLabel }}</button>
+        
+        <button v-if="isTeacherLogged" @click="openModal">
+          Criar {{ currentSection.actionLabel }}
+        </button>
       </div>
       <div class="status-filters" v-if="activeSection === 'artigos'">
         <button v-for="filter in statusFilters" :key="filter.value" class="status-filter"
@@ -350,13 +413,15 @@ export default {
       <div class="posts-grid">
         <CardPost v-if="activeSection === 'artigos'" v-for="post in filteredItems" :key="post.id" :id="post.id"
           :image="post.image" :category="post.category" :category-color="post.categoryColor" :title="post.title"
-          :content="post.content" :author="post.author" :status="post.status" />
+          :content="post.content" :author="post.author" :status="post.status" :can-edit="isTeacherLogged"
+          @manage-item="handleItemAction" />
         <CardNewspaper v-else-if="activeSection === 'jornais'" v-for="newspaper in filteredItems" :key="newspaper.id"
           :id="newspaper.id" :title="newspaper.title" :pdf-url="newspaper.pdfUrl" :published-at="newspaper.publishedAt"
-          :show-status="false" />
+          :show-status="false" :can-edit="isTeacherLogged" @manage-item="handleItemAction" />
         <CardCategory v-else-if="activeSection === 'categorias'" v-for="category in filteredItems" :key="category.id"
           :id="category.id" :name="category.name" :description="category.description" :color="category.color"
-          :icon="category.icon" :created-at="category.createdAt" />
+          :icon="category.icon" :created-at="category.createdAt"
+          :can-edit="isTeacherLogged" @manage-item="handleItemAction" />
       </div>
     </div>
   </main>
@@ -364,7 +429,7 @@ export default {
   <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>{{ currentSection.actionLabel }}</h2>
+        <h2>{{ isEditing ? 'Editar' : 'Criar' }} {{ currentSection.actionLabel }}</h2>
         <button class="close-btn" @click="closeModal">&times;</button>
       </div>
 
@@ -382,21 +447,18 @@ export default {
             <label>Categoria *</label>
             <select v-model="formPost.category_id" required>
               <option value="" disabled>Selecione uma categoria</option>
-              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                {{ cat.name }}
-              </option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Imagem de Capa *</label>
+            <label>Imagem de Capa <span v-if="!isEditing">*</span></label>
             <div class="file-upload-wrapper">
-              <label for="cover-image" class="custom-file-upload">
-                Escolher Imagem
-              </label>
-              <input id="cover-image" ref="imageInput" type="file" accept="image/*" @change="handleImageChange" required />
-              
+              <label for="cover-image" class="custom-file-upload">Escolher Imagem</label>
+              <input id="cover-image" ref="imageInput" type="file" accept="image/*" @change="handleImageChange"
+                :required="!isEditing" />
               <span class="file-name" v-if="imageFile">{{ imageFile.name }}</span>
-              <span class="file-name empty" v-else>Nenhum arquivo selecionado</span>
+              <span class="file-name empty" v-else>{{ isEditing ? 'Manter imagem atual' : 'Nenhum arquivo selecionado'
+              }}</span>
             </div>
           </div>
           <div class="form-group">
@@ -409,7 +471,7 @@ export default {
           <div class="form-group">
             <label>Conteúdo *</label>
             <textarea v-model="formPost.content" rows="5" required
-              placeholder="Digite o texto do artigo aqui..."></textarea>
+              placeholder="Digite o texto completo do artigo..."></textarea>
           </div>
         </div>
 
@@ -419,15 +481,14 @@ export default {
             <input v-model="formNewspaper.title" type="text" required placeholder="Ex: Edição Nº 45 - Outubro" />
           </div>
           <div class="form-group">
-            <label>Arquivo PDF do Jornal *</label>
+            <label>Arquivo PDF do Jornal <span v-if="!isEditing">*</span></label>
             <div class="file-upload-wrapper">
-              <label for="pdf-file" class="custom-file-upload">
-                Escolher PDF
-              </label>
-              <input id="pdf-file" ref="pdfInput" type="file" accept=".pdf" @change="handlePdfChange" required />
-              
+              <label for="pdf-file" class="custom-file-upload">Escolher PDF</label>
+              <input id="pdf-file" ref="pdfInput" type="file" accept=".pdf" @change="handlePdfChange"
+                :required="!isEditing" />
               <span class="file-name" v-if="pdfFile">{{ pdfFile.name }}</span>
-              <span class="file-name empty" v-else>Nenhum arquivo selecionado</span>
+              <span class="file-name empty" v-else>{{ isEditing ? 'Manter arquivo atual' : 'Nenhum arquivo selecionado'
+              }}</span>
             </div>
           </div>
         </div>
@@ -448,7 +509,7 @@ export default {
             </div>
             <div class="form-group">
               <label>Nome do Ícone *</label>
-              <input v-model="formCategory.icon" type="text" required placeholder="Ex: sports_soccer, school" />
+              <input v-model="formCategory.icon" type="text" required placeholder="Ex: sports_soccer" />
             </div>
           </div>
         </div>
@@ -456,7 +517,7 @@ export default {
         <div class="modal-actions">
           <button type="button" class="btn-cancel" @click="closeModal">Cancelar</button>
           <button type="submit" class="btn-submit" :disabled="isSubmitting">
-            {{ isSubmitting ? 'Enviando Arquivos...' : 'Salvar' }}
+            {{ isSubmitting ? 'Processando...' : 'Salvar' }}
           </button>
         </div>
       </form>
@@ -467,7 +528,7 @@ export default {
 </template>
 
 <style scoped>
-/* Estilos anteriores mantidos para preservação visual */
+/*  Estilos da Página  */
 .header-page {
   display: flex;
   max-width: 1200px;
@@ -540,6 +601,12 @@ main {
   font-family: var(--secondary-font);
   margin: 0;
   padding: 1rem 0;
+  pointer-events: none;
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 3px;
 }
 
 .container-right {
@@ -603,7 +670,11 @@ main {
   gap: 1.5rem;
 }
 
-/* MODAL & FILE INPUT STYLES */
+.posts-grid:has(.category-card) {
+  grid-template-columns: 1fr;
+}
+
+/* Estrutura do modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -676,6 +747,7 @@ main {
 .form-group label {
   font-size: 14px;
   font-weight: 500;
+  font-family: var(--primary-font);
   color: #444;
 }
 
@@ -685,59 +757,19 @@ main {
   padding: 0.7rem 1rem;
   border: 1px solid #cccccc;
   border-radius: 12px;
+  font-family: var(--primary-font);
   font-size: 14px;
   outline: none;
+  transition: border-color 0.2s;
 }
 
-.form-group input[type="color"] {
-  height: 46px; /* Altura alinhada com os outros inputs */
-  padding: 0.3rem; /* Sobrescreve o padding grande que estava quebrando o input */
-  cursor: pointer;
-  width: 100%;
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: var(--color-green);
 }
 
-/* Deixa o quadradinho da cor mais bonito no Chrome, Edge e Safari */
-.form-group input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.form-group input[type="color"]::-webkit-color-swatch {
-  border: none;
-  border-radius: 8px; /* Mantém o padrão arredondado do projeto */
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-  border-top: 1px solid #eee;
-  padding-top: 1rem;
-}
-
-.btn-cancel {
-  background: none;
-  border: 1px solid #aaa;
-  padding: 0.6rem 1.5rem;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.btn-submit {
-  background-color: var(--color-green);
-  color: white;
-  border: none;
-  padding: 0.6rem 2rem;
-  border-radius: 20px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.btn-submit:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
+/* Upload customizado dos ficheiros */
 .file-upload-wrapper {
   display: flex;
   align-items: center;
@@ -745,12 +777,10 @@ main {
   margin-top: 0.2rem;
 }
 
-/* Esconde o botão feio padrão do navegador */
 .file-upload-wrapper input[type="file"] {
   display: none;
 }
 
-/* Transforma a label no nosso novo botão */
 .custom-file-upload {
   background-color: #f5f5f5;
   border: 1px solid #cccccc;
@@ -767,14 +797,12 @@ main {
   white-space: nowrap;
 }
 
-/* Efeito ao passar o mouse (Hover usando as cores do seu projeto) */
 .custom-file-upload:hover {
-  background-color: var(--color-green); /* Usa a variável de cor do seu projeto */
+  background-color: var(--color-green);
   border-color: var(--color-green);
   color: #ffffff;
 }
 
-/* Texto lateral indicando o arquivo escolhido */
 .file-name {
   font-size: 13px;
   color: #333;
@@ -782,7 +810,7 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px; /* Evita que nomes muito longos quebrem o layout */
+  max-width: 200px;
 }
 
 .file-name.empty {
@@ -790,6 +818,59 @@ main {
   font-style: italic;
 }
 
+/* Alinhamento e estilização da cor */
+.form-group input[type="color"] {
+  height: 46px;
+  padding: 0.3rem;
+  cursor: pointer;
+  width: 100%;
+}
+
+.form-group input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-group input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 8px;
+}
+
+/* Ações do rodapé do modal */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+}
+
+.btn-cancel {
+  background: none;
+  border: 1px solid #aaa;
+  padding: 0.6rem 1.5rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: var(--primary-font);
+}
+
+.btn-submit {
+  background-color: var(--color-green);
+  color: white;
+  border: none;
+  padding: 0.6rem 2rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: var(--primary-font);
+  font-weight: 500;
+}
+
+.btn-submit:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Responsividade */
 @media (max-width: 768px) {
   main {
     flex-direction: column;
@@ -818,13 +899,24 @@ main {
     display: none !important;
   }
 
+  .header-page {
+    gap: 0.5rem;
+    width: 95%;
+  }
+
   .header-page h1 {
     font-size: 22px;
+  }
+
+  .header-page img {
+    width: 32px;
+    height: 32px;
   }
 
   main {
     width: 95%;
     margin: 1rem auto 2rem;
+    gap: 1rem;
   }
 
   .container-left {
@@ -835,23 +927,52 @@ main {
   .option {
     flex: 1 1 30%;
     min-width: 100px;
+    border-radius: 12px;
+  }
+
+  .option h3 {
+    font-size: 14px;
+    padding: 0.6rem 0;
+  }
+
+  .container-right {
+    width: 100%;
   }
 
   .total-items {
     flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 15px;
     text-align: center;
+  }
+
+  .total-items p {
+    font-size: 16px;
+    margin: 0;
   }
 
   .total-items button {
     width: 100%;
+    padding: 0.8rem;
+    font-size: 15px;
+  }
+
+  .status-filters {
+    justify-content: center;
+    gap: 0.5rem;
   }
 
   .status-filter {
     flex: 1 1 45%;
-  } 
+    text-align: center;
+    font-size: 12px;
+    padding: 0.5rem;
+  }
 
   .posts-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .file-upload-wrapper {

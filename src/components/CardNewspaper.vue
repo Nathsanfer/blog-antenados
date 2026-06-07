@@ -26,12 +26,18 @@ export default {
       type: String,
       default: "",
     },
+    // Propriedade para controlar a permissão de edição
+    canEdit: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
       showPdfModal: false,
       pdfThumbnail: null,
       loadingThumbnail: true,
+      showMenu: false, // Controle do menu de opções (⋮)
     };
   },
   computed: {
@@ -49,6 +55,12 @@ export default {
     if (this.pdfUrl) {
       await this.generateThumbnail();
     }
+    // Event listener para fechar o menu ao clicar fora
+    document.addEventListener("click", this.closeMenu);
+  },
+  unmounted() {
+    // Remover listener ao destruir o componente
+    document.removeEventListener("click", this.closeMenu);
   },
   methods: {
     async generateThumbnail() {
@@ -84,28 +96,45 @@ export default {
     closePdfModal() {
       this.showPdfModal = false;
     },
+    // métodos para o botão de opções Editar/Excluir
+    toggleMenu() {
+      this.showMenu = !this.showMenu;
+    },
+    closeMenu() {
+      this.showMenu = false;
+    },
+    handleAction(action) {
+      this.closeMenu();
+      this.$emit("manage-item", { action, id: this.id });
+    },
   },
 };
 </script>
 
 <template>
   <div class="card" @click="openPdf">
+
     <div class="newspaper-cover" :class="{ 'has-thumbnail': pdfThumbnail }">
+      <div v-if="canEdit" class="card-options-wrapper">
+        <button type="button" class="btn-options" @click.stop="toggleMenu">⋮</button>
+
+        <div v-if="showMenu" class="options-dropdown">
+          <button type="button" @click.stop="handleAction('edit')">Editar</button>
+          <button type="button" class="delete-action" @click.stop="handleAction('delete')">Excluir</button>
+        </div>
+      </div>
+
       <div v-if="loadingThumbnail" class="cover-content">
         <div class="newspaper-icon">📰</div>
         <div class="newspaper-label">Carregando...</div>
       </div>
-      <img
-        v-else-if="pdfThumbnail"
-        :src="pdfThumbnail"
-        :alt="title"
-        class="pdf-thumbnail"
-      />
+      <img v-else-if="pdfThumbnail" :src="pdfThumbnail" :alt="title" class="pdf-thumbnail" />
       <div v-else class="cover-content">
         <div class="newspaper-icon">📰</div>
         <div class="newspaper-label">Jornal</div>
       </div>
     </div>
+
     <h4 class="title-newspaper">{{ title }}</h4>
     <p class="publication-date" v-if="publishedAt">
       {{ formattedDate }}
@@ -116,7 +145,6 @@ export default {
     </p>
   </div>
 
-  <!-- Modal PDF -->
   <div v-if="showPdfModal" class="pdf-modal-overlay" @click="closePdfModal">
     <div class="pdf-modal" @click.stop>
       <div class="pdf-modal-header">
@@ -128,16 +156,13 @@ export default {
           <button class="close-btn" @click="closePdfModal">✕</button>
         </div>
       </div>
-      <iframe
-        :src="`${pdfUrl}#toolbar=1&view=FitH`"
-        class="pdf-viewer"
-        title="Visualizador de PDF"
-      ></iframe>
+      <iframe :src="`${pdfUrl}#toolbar=1&view=FitH`" class="pdf-viewer" title="Visualizador de PDF"></iframe>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* Card base */
 .card {
   display: flex;
   flex-direction: column;
@@ -146,9 +171,7 @@ export default {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   border-radius: 20px;
   overflow: hidden;
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
   cursor: pointer;
   height: 100%;
   position: relative;
@@ -181,6 +204,74 @@ export default {
   inset: 0;
   background-color: rgba(0, 0, 0, 0.05);
   z-index: 1;
+}
+
+/* Estilos para o menus de opcoes ⋮ */
+.card-options-wrapper {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  z-index: 20;
+}
+
+.btn-options {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  border: 1px solid #dddddd;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  color: #333;
+}
+
+.btn-options:hover {
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.options-dropdown {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem;
+  min-width: 110px;
+}
+
+.options-dropdown button {
+  background: none;
+  border: none;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-family: var(--primary-font, sans-serif);
+  color: #333;
+}
+
+.options-dropdown button:hover {
+  background-color: #f5f5f5;
+}
+
+.options-dropdown button.delete-action {
+  color: #da4167;
+}
+
+.options-dropdown button.delete-action:hover {
+  background-color: #fff0f2;
 }
 
 .pdf-thumbnail {
@@ -265,7 +356,7 @@ export default {
   font-weight: 600;
 }
 
-/* PDF Modal */
+/* Modal PDF */
 .pdf-modal-overlay {
   position: fixed;
   top: 0;
@@ -298,6 +389,7 @@ export default {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -347,7 +439,7 @@ export default {
   border: none;
   width: 100%;
 }
-/* --- Estilos do novo botão no Header do Modal --- */
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -370,7 +462,7 @@ export default {
   background-color: #558a62;
 }
 
-/* ===== MEDIA QUERIES ===== */
+/* Media queries */
 @media (max-width: 768px) {
   .pdf-modal {
     width: 95%;
@@ -382,11 +474,9 @@ export default {
   }
 }
 
-/* --- Foco total em Smartphones (480px ou menos) --- */
 @media (max-width: 480px) {
-  /* Ajustes do Card */
   .newspaper-cover {
-    height: 140px; /* Reduz um pouco a altura da capa para equilibrar no mobile */
+    height: 140px;
   }
 
   .title-newspaper {
@@ -394,12 +484,12 @@ export default {
   }
 
   .pdf-modal-overlay {
-    padding: 0; 
+    padding: 0;
   }
 
   .pdf-modal {
     width: 90%;
-    height: 600px; 
+    height: 600px;
     max-height: 100vh;
     max-width: 100%;
     border-radius: 20px;
@@ -414,7 +504,7 @@ export default {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 50%; 
+    max-width: 50%;
   }
 
   .open-native-btn {
