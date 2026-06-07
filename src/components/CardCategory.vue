@@ -28,10 +28,16 @@ export default {
       type: String,
       required: true,
     },
+    // Controle de permissão de edição
+    canEdit: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
       CATEGORY_ICONS,
+      showMenu: false, // Controle de exibição do menu
     };
   },
   computed: {
@@ -42,11 +48,41 @@ export default {
       return CATEGORY_ICONS[this.icon] || CATEGORY_ICONS.lamp;
     },
   },
+  // Listeners para fechar o menu ao clicar fora
+  mounted() {
+    document.addEventListener("click", this.closeMenu);
+  },
+  unmounted() {
+    document.removeEventListener("click", this.closeMenu);
+  },
+  // Métodos de controle do menu
+  methods: {
+    toggleMenu() {
+      this.showMenu = !this.showMenu;
+    },
+    closeMenu() {
+      this.showMenu = false;
+    },
+    handleAction(action) {
+      this.closeMenu();
+      this.$emit("manage-item", { action, id: this.id });
+    },
+  },
 };
 </script>
 
 <template>
   <div class="category-card">
+    
+    <div v-if="canEdit" class="card-options-wrapper">
+      <button type="button" class="btn-options" @click.stop="toggleMenu">⋮</button>
+      
+      <div v-if="showMenu" class="options-dropdown">
+        <button type="button" @click.stop="handleAction('edit')">Editar</button>
+        <button type="button" class="delete-action" @click.stop="handleAction('delete')">Excluir</button>
+      </div>
+    </div>
+
     <div class="category-card-top">
       <div class="category-card-header" :style="{ backgroundColor: color }">
         <img
@@ -56,6 +92,7 @@ export default {
         />
       </div>
     </div>
+    
     <div class="category-card-content">
       <h3 class="category-name">{{ name }}</h3>
       <p class="category-description">{{ description }}</p>
@@ -73,7 +110,6 @@ export default {
   background: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   border-radius: 16px;
-  overflow: hidden;
   cursor: pointer;
   position: relative;
   transition: all 0.3s ease;
@@ -85,6 +121,75 @@ export default {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   border-color: #ebebeb;
 }
+
+/*  Estilos para o menus de opcoes ⋮ */
+.card-options-wrapper {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+}
+
+.btn-options {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  border: 1px solid #dddddd;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  color: #333;
+}
+
+.btn-options:hover {
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.options-dropdown {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem;
+  min-width: 110px;
+}
+
+.options-dropdown button {
+  background: none;
+  border: none;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-family: var(--primary-font, sans-serif);
+  color: #333;
+}
+
+.options-dropdown button:hover {
+  background-color: #f5f5f5;
+}
+
+.options-dropdown button.delete-action {
+  color: #da4167;
+}
+
+.options-dropdown button.delete-action:hover {
+  background-color: #fff0f2;
+}
+/* = */
 
 .category-card-top {
   display: flex;
@@ -124,6 +229,7 @@ export default {
   flex-direction: column;
   justify-content: center;
   gap: 0.5rem;
+  padding-right: 3rem; 
 }
 
 .category-name {
