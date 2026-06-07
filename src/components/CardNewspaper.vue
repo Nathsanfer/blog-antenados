@@ -26,7 +26,7 @@ export default {
       type: String,
       default: "",
     },
-    // Adicionado: Propriedade para controlar a permissão de edição
+    // Propriedade para controlar a permissão de edição
     canEdit: {
       type: Boolean,
       default: false,
@@ -37,7 +37,7 @@ export default {
       showPdfModal: false,
       pdfThumbnail: null,
       loadingThumbnail: true,
-      showMenu: false, // Adicionado: Controle do menu de opções (⋮)
+      showMenu: false, // Controle do menu de opções (⋮)
     };
   },
   computed: {
@@ -55,11 +55,11 @@ export default {
     if (this.pdfUrl) {
       await this.generateThumbnail();
     }
-    // Adicionado: Event listener para fechar o menu ao clicar fora
+    // Event listener para fechar o menu ao clicar fora
     document.addEventListener("click", this.closeMenu);
   },
   unmounted() {
-    // Adicionado: Remover listener ao destruir o componente
+    // Remover listener ao destruir o componente
     document.removeEventListener("click", this.closeMenu);
   },
   methods: {
@@ -96,7 +96,7 @@ export default {
     closePdfModal() {
       this.showPdfModal = false;
     },
-    // --- Novos métodos para o botão de opções (Editar/Excluir) ---
+    // métodos para o botão de opções Editar/Excluir
     toggleMenu() {
       this.showMenu = !this.showMenu;
     },
@@ -162,7 +162,7 @@ export default {
 </template>
 
 <style scoped>
-/* CARD BASE MANTIDO */
+/* Card base */
 .card {
   display: flex;
   flex-direction: column;
@@ -206,13 +206,12 @@ export default {
   z-index: 1;
 }
 
-/* === NOVOS ESTILOS PARA O MENU DE OPÇÕES (⋮) === */
+/* Estilos para o menus de opcoes ⋮ */
 .card-options-wrapper {
   position: absolute;
   top: 0.9rem;
   right: 0.9rem;
   z-index: 20;
-  /* Fica acima da thumbnail e do overlay */
 }
 
 .btn-options {
@@ -274,8 +273,6 @@ export default {
 .options-dropdown button.delete-action:hover {
   background-color: #fff0f2;
 }
-
-/* ============================================== */
 
 .pdf-thumbnail {
   width: 100%;
@@ -359,7 +356,7 @@ export default {
   font-weight: 600;
 }
 
-/* === Modal PDF === */
+/* Modal PDF */
 .pdf-modal-overlay {
   position: fixed;
   top: 0;
@@ -465,7 +462,7 @@ export default {
   background-color: #558a62;
 }
 
-/* ===== MEDIA QUERIES ===== */
+/* Media queries */
 @media (max-width: 768px) {
   .pdf-modal {
     width: 95%;
