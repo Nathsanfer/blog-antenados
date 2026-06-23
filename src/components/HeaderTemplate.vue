@@ -45,6 +45,8 @@ const logout = async () => {
     <nav class="navigation-header">
       <router-link to="/" class="nav-link">Home</router-link>
       <router-link to="/blog" class="nav-link">Blog</router-link>
+      <router-link to="/jornais" class="nav-link">Jornais</router-link>
+      <router-link to="/galeria" class="nav-link">Galeria</router-link>
       <router-link v-if="isAuthenticated" to="/criacao" class="nav-link">Criações</router-link>
     </nav>
 
