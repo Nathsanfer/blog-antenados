@@ -13,12 +13,25 @@ export default {
       categories: [],
       selectedCategory: null,
       CATEGORY_ICONS,
+      showModal: false,
+      uploading: false,
+      newImage: {
+        file: null,
+        categoryId: "",
+      },
+      selectedImage: null,
     };
   },
   async mounted() {
     await this.loadCategories();
   },
   methods: {
+    openImage(image) {
+      this.selectedImage = image;
+    },
+    closeImage() {
+      this.selectedImage = null;
+    },
     async loadCategories() {
       try {
         const { data, error } = await supabase
@@ -43,6 +56,116 @@ export default {
         console.error("Erro ao buscar as categorias:", error);
       }
     },
+    async loadCategories() {
+      try {
+        const { data, error } = await supabase
+          .from("categories")
+          .select(
+            `
+        *,
+        category_images (
+          id,
+          image_url,
+          position
+        )
+      `,
+          )
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          console.error("Erro ao buscar as categorias:", error);
+          return;
+        }
+
+        this.categories = (data || []).map((category) => ({
+          id: category.id,
+          name: category.name,
+          color: category.color || "#6dac7e",
+          description: category.description,
+          icon: category.icon,
+          createdAt: category.created_at,
+
+          images: (category.category_images || [])
+            .sort((a, b) => a.position - b.position)
+            .map((image) => ({
+              id: image.id,
+              url: image.image_url,
+              position: image.position,
+            })),
+        }));
+      } catch (error) {
+        console.error("Erro ao buscar as categorias:", error);
+      }
+    },
+    handleFile(event) {
+      this.newImage.file = event.target.files[0];
+    },
+    async uploadImage() {
+      if (!this.newImage.file || !this.newImage.categoryId) {
+        alert("Selecione uma imagem e uma categoria.");
+        return;
+      }
+
+      this.uploading = true;
+
+      try {
+        const file = this.newImage.file;
+
+        const extension = file.name.split(".").pop();
+
+        const fileName = `${Date.now()}.${extension}`;
+
+        const filePath = `${this.newImage.categoryId}/${fileName}`;
+
+        // Upload para o bucket
+        const { error: uploadError } = await supabase.storage
+          .from("category-images")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        // URL pública
+        const { data } = supabase.storage
+          .from("category-images")
+          .getPublicUrl(filePath);
+
+        const imageUrl = data.publicUrl;
+
+        // descobrir posição
+        const { data: images } = await supabase
+          .from("category_images")
+          .select("position")
+          .eq("category_id", this.newImage.categoryId)
+          .order("position", { ascending: false })
+          .limit(1);
+
+        const nextPosition =
+          images && images.length ? images[0].position + 1 : 0;
+
+        // salvar no banco
+        const { error } = await supabase.from("category_images").insert({
+          category_id: this.newImage.categoryId,
+          image_url: imageUrl,
+          position: nextPosition,
+        });
+
+        if (error) throw error;
+
+        this.showModal = false;
+
+        this.newImage = {
+          file: null,
+          categoryId: "",
+        };
+
+        await this.loadCategories();
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao enviar imagem.");
+      } finally {
+        this.uploading = false;
+      }
+    },
     selectCategory(categoryId) {
       this.selectedCategory =
         this.selectedCategory === categoryId ? null : categoryId;
@@ -58,6 +181,11 @@ export default {
     formatCategoryDate(dateString) {
       if (!dateString) return "Data indisponível";
       return new Date(dateString).toLocaleDateString("pt-BR");
+    },
+    getImageClass(index) {
+      if (index % 7 === 1) return "vertical";
+      if (index % 7 === 4) return "horizontal";
+      return "";
     },
   },
 };
@@ -87,7 +215,7 @@ export default {
   <main>
     <div class="container-filters">
       <div class="filters">
-        <h3>Utilize os Filtros: </h3>
+        <h3>Utilize os Filtros:</h3>
         <div
           class="filter-item"
           :class="{ active: selectedCategory == null }"
@@ -106,9 +234,9 @@ export default {
           <p>{{ category.name }}</p>
         </div>
       </div>
-      <router-link to="/galeria" class="see-all">
+      <button class="see-all" @click="showModal = true">
         <p>+</p>
-      </router-link>
+      </button>
     </div>
 
     <section
@@ -132,66 +260,203 @@ export default {
       </div>
 
       <div class="container-images">
-        <div class="item-gallery">
+        <div
+          v-for="(image, index) in category.images"
+          :key="image.id"
+          class="item-gallery"
+          :class="getImageClass(index)"
+          @click="openImage(image)"
+        >
           <img
-            src="https://picsum.photos/600/600?random=1"
-            alt="Foto Galeria"
-          />
-        </div>
-        <div class="item-gallery vertical">
-          <img
-            src="https://picsum.photos/600/900?random=2"
-            alt="Foto Vertical"
-          />
-        </div>
-        <div class="item-gallery horizontal">
-          <img
-            src="https://picsum.photos/900/600?random=3"
-            alt="Foto Horizontal"
-          />
-        </div>
-        <div class="item-gallery">
-          <img
-            src="https://picsum.photos/600/600?random=4"
-            alt="Foto Galeria"
-          />
-        </div>
-        <div class="item-gallery vertical">
-          <img
-            src="https://picsum.photos/600/900?random=5"
-            alt="Foto Vertical"
-          />
-        </div>
-        <div class="item-gallery">
-          <img
-            src="https://picsum.photos/600/600?random=6"
-            alt="Foto Galeria"
-          />
-        </div>
-        <div class="item-gallery">
-          <img
-            src="https://picsum.photos/600/600?random=7"
-            alt="Foto Galeria"
-          />
-        </div>
-        <div class="item-gallery">
-          <img
-            src="https://picsum.photos/600/600?random=8"
-            alt="Foto Galeria"
-          />
-        </div>
-        <div class="item-gallery">
-          <img
-            src="https://picsum.photos/600/600?random=9"
-            alt="Foto Galeria"
+            :src="image.url"
+            :alt="`${category.name} ${index + 1}`"
+            loading="lazy"
           />
         </div>
       </div>
     </section>
   </main>
+
+  <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+    <div class="modal">
+      <h2>Adicionar Foto</h2>
+
+      <div class="field">
+        <label>Categoria</label>
+
+        <select v-model="newImage.categoryId">
+          <option disabled value="">Selecione...</option>
+
+          <option
+            v-for="category in categories"
+            :key="category.id"
+            :value="category.id"
+          >
+            {{ category.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Imagem</label>
+
+        <input type="file" accept="image/*" @change="handleFile" />
+      </div>
+
+      <div class="actions">
+        <button class="cancel" @click="showModal = false">Cancelar</button>
+
+        <button class="save" @click="uploadImage" :disabled="uploading">
+          {{ uploading ? "Enviando..." : "Salvar" }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+  v-if="selectedImage"
+  class="image-viewer"
+  @click.self="closeImage"
+>
+  <button class="close-image" @click="closeImage">
+    ✕
+  </button>
+
+  <img
+    :src="selectedImage.url"
+    alt="Imagem ampliada"
+  />
+</div>
 </template>
 
 <style scoped>
+.image-viewer{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.82);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+    animation:fade .25s;
+}
+
+.image-viewer img{
+    max-width:92vw;
+    max-height:92vh;
+    object-fit:contain;
+    border-radius:12px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);
+}
+
+.close-image{
+    position:absolute;
+    top:25px;
+    right:30px;
+    width:45px;
+    height:45px;
+    border:none;
+    border-radius:50%;
+    background:white;
+    cursor:pointer;
+    font-size:20px;
+    transition:.2s;
+}
+
+.close-image:hover{
+    transform:scale(1.1);
+}
+
+.item-gallery{
+    cursor:pointer;
+}
+
+.item-gallery img{
+    transition:.3s;
+}
+
+.item-gallery:hover img{
+    transform:scale(1.05);
+}
+
+@keyframes fade{
+    from{
+        opacity:0;
+    }
+    to{
+        opacity:1;
+    }
+}
+
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal {
+  width: 420px;
+  max-width: 90%;
+  background: #fff;
+  border-radius: 16px;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal h2 {
+  margin: 0;
+  font-family: var(--secondary-font);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.field input,
+.field select {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d9d9d9;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cancel {
+  background: #ececec;
+}
+
+.save {
+  background: #6dac7e;
+  color: white;
+}
+
 /* Seus estilos CSS permanecem intactos aqui abaixo */
 .header-page {
   display: flex;
@@ -253,9 +518,13 @@ main {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   text-transform: uppercase;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  background: linear-gradient(rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.15)), 
-              var(--category-color, #b2a1bc);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.15)),
+    var(--category-color, #b2a1bc);
 }
 .filter-item p {
   margin: 0;
@@ -264,7 +533,7 @@ main {
   color: #fff;
 }
 .filter-item.active {
-  color: #ffffff; 
+  color: #ffffff;
   border: 2px solid #6dac7e;
 }
 .filter-item:hover {
@@ -275,7 +544,7 @@ main {
 }
 .see-all {
   text-decoration: none;
-   border: 3px solid transparent;
+  border: 3px solid transparent;
   background:
     linear-gradient(white, white) padding-box,
     linear-gradient(to right, #aea784, #83ae8e, #85d8de, #a274c0, #d27f94);

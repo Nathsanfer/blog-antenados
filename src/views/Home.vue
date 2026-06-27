@@ -219,6 +219,45 @@ async function fetchNewspapers() {
       </div>
     </section>
 
+    <section class="gallery-preview">
+      <div class="gallery-header">
+        <div class="section-header">
+          <div class="divisor"></div>
+          <h1 class="title2">📸 Nossa Galeria</h1>
+          <div class="divisor"></div>
+        </div>
+        <p class="gallery-subtitle">Uma prévia dos registros visuais e produções artísticas da comunidade</p>
+      </div>
+
+      <div class="bento-gallery">
+        <div class="bento-item main-item">
+          <img src="https://picsum.photos/800/800?random=11" alt="Destaque Galeria" />
+          <div class="bento-overlay">
+            <span>Artes e Expressão</span>
+          </div>
+        </div>
+        <div class="bento-item tall-item">
+          <img src="https://picsum.photos/600/900?random=12" alt="Foto Vertical Home" />
+        </div>
+        <div class="bento-item tall-item">
+          <img src="https://picsum.photos/600/900?random=16" alt="Foto Vertical Home" />
+        </div>
+        <div class="bento-item wide-item">
+          <img src="https://picsum.photos/900/600?random=13" alt="Foto Horizontal Home" />
+        </div>
+        <div class="bento-item standard-item">
+          <img src="https://picsum.photos/600/600?random=14" alt="Foto Galeria Home" />
+        </div>
+        <div class="bento-item standard-item">
+          <img src="https://picsum.photos/600/600?random=15" alt="Foto Galeria Home" />
+        </div>
+      </div>
+
+      <button class="btn btn-primary" @click="goToGallery">
+        Explorar Galeria Completa
+      </button>
+    </section>
+
     <section class="newspapers">
       <div class="newspapers-header">
         <div class="section-header">
@@ -277,6 +316,165 @@ async function fetchNewspapers() {
 </template>
 
 <style scoped>
+
+/* ===== Gallery Preview (Novo) ===== */
+.gallery-preview {
+  max-width: 1200px;
+  margin: 6rem auto 1rem;
+  padding: 0 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.gallery-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.gallery-subtitle {
+  font-size: 16px;
+  font-family: var(--primary-font);
+  color: #666;
+  margin: 0;
+  font-weight: 300;
+  letter-spacing: 0.3px;
+  text-align: center;
+}
+
+/* Estrutura Bento Box / Mosaico Organizado */
+.bento-gallery {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 140px;
+  gap: 1.25rem;
+  animation: fadeInUp 0.6s ease;
+}
+
+.bento-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px; /* Alinhado com o estilo dos seus cards/botões */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
+}
+
+.bento-item:hover {
+  transform: scale(1.015) translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.bento-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Definições de grid assimétrico */
+.bento-item.main-item {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.bento-item.tall-item {
+  grid-column: span 1;
+  grid-row: span 2;
+}
+
+.bento-item.wide-item {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.bento-item.standard-item {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+/* Efeito sutil de tag/overlay no item principal */
+.bento-overlay {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  padding: 0.4rem 1rem;
+  border-radius: 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.bento-overlay span {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--primary-font);
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================
+   RESPONSIVIDADE DA GALERIA (Ajustes de Breakpoints)
+   ========================================== */
+
+@media (max-width: 1024px) {
+  .bento-gallery {
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 130px;
+  }
+  /* Remodela o grid para 3 colunas */
+  .bento-item.main-item { grid-column: span 2; grid-row: span 2; }
+  .bento-item.tall-item { grid-column: span 1; grid-row: span 2; }
+  .bento-item.wide-item { grid-column: span 2; grid-row: span 1; }
+  .bento-item.standard-item { grid-column: span 1; grid-row: span 1; }
+}
+
+@media (max-width: 768px) {
+  .gallery-preview {
+    margin: 4.5rem auto 1rem;
+  }
+  .gallery-subtitle {
+    font-size: 13px;
+    padding: 0 1rem;
+  }
+  .bento-gallery {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 140px;
+    max-width: 460px;
+    margin: 0 auto;
+    gap: 1rem;
+  }
+  /* Força comportamento uniforme em telas menores para evitar quebras */
+  .bento-item.main-item,
+  .bento-item.tall-item,
+  .bento-item.wide-item,
+  .bento-item.standard-item {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+  /* Mantém apenas o primeiro item maior para manter o charme visual */
+  .bento-item.main-item {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .bento-gallery {
+    max-width: 100%;
+    grid-template-columns: 1fr;
+    grid-auto-rows: 180px;
+  }
+  .bento-item.main-item {
+    grid-column: span 1;
+  }
+}
+
 /* ===== Base ===== */
 .page-content {
   overflow-x: hidden;
