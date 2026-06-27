@@ -9,22 +9,31 @@ import { supabase } from "../composables/useSupabase.js";
 import { CATEGORY_ICONS } from "../lib/categories.ts";
 
 const router = useRouter();
+
 const posts = ref([]);
 const newspapers = ref([]);
 const categories = ref([]);
+const galleryImages = ref([]);
 
 function goToAllPosts() {
-  router.push('/blog');
+  router.push("/blog");
 }
 
 function goToAllNewspapers() {
-  router.push('/blog?section=jornais');
+  router.push("/blog?section=jornais");
+}
+
+function goToGallery() {
+  router.push("/galeria");
 }
 
 onMounted(async () => {
-  await fetchCategories();
-  await fetchPosts();
-  await fetchNewspapers();
+  await Promise.all([
+    fetchCategories(),
+    fetchGalleryImages(),
+    fetchPosts(),
+    fetchNewspapers(),
+  ]);
 });
 
 async function fetchCategories() {
@@ -47,6 +56,31 @@ async function fetchCategories() {
     }));
   } catch (e) {
     console.error("Erro ao buscar categorias:", e);
+  }
+}
+
+async function fetchGalleryImages() {
+  try {
+    const { data, error } = await supabase
+      .from("category_images")
+      .select(
+        `
+        id,
+        image_url,
+        position,
+        category_id
+      `,
+      )
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Erro ao buscar imagens:", error);
+      return;
+    }
+
+    galleryImages.value = data || [];
+  } catch (err) {
+    console.error(err);
   }
 }
 
@@ -103,6 +137,28 @@ async function fetchNewspapers() {
     console.error("Erro ao buscar jornais:", e);
   }
 }
+
+function getGalleryClass(index) {
+  switch (index) {
+    case 0:
+      return "main-item";
+
+    case 1:
+    case 2:
+      return "tall-item";
+
+    case 3:
+      return "wide-item";
+
+    default:
+      return "standard-item";
+  }
+}
+
+function getMainImageCategory() {
+  if (!galleryImages.value.length) return "Galeria";
+  return "Galeria Cultural";
+}
 </script>
 
 <template>
@@ -116,9 +172,19 @@ async function fetchNewspapers() {
     <section class="categories">
       <h1 class="title1">Explore por temas (Destaques)</h1>
       <ul class="list-themes">
-        <li class="item-theme" v-for="category in categories" :key="category.id">
-          <div class="container-icon" :style="{ backgroundColor: category.cor }">
-            <img :src="category.icone" :alt="`Icone para o tema ${category.nome}`" />
+        <li
+          class="item-theme"
+          v-for="category in categories"
+          :key="category.id"
+        >
+          <div
+            class="container-icon"
+            :style="{ backgroundColor: category.cor }"
+          >
+            <img
+              :src="category.icone"
+              :alt="`Icone para o tema ${category.nome}`"
+            />
           </div>
           <p class="name-theme">{{ category.nome }}</p>
         </li>
@@ -145,7 +211,10 @@ async function fetchNewspapers() {
             <div class="topic-content1">
               <h3 class="subtitle">Preservar a Cultura</h3>
               <p class="description">
-                Documentamos e valorizamos as manifestações culturais e folclóricas que fazem parte de nossa identidade, garantindo que tradições ancestrais sejam conhecidas e respeitadas pelas gerações futuras.
+                Documentamos e valorizamos as manifestações culturais e
+                folclóricas que fazem parte de nossa identidade, garantindo que
+                tradições ancestrais sejam conhecidas e respeitadas pelas
+                gerações futuras.
               </p>
             </div>
           </li>
@@ -156,7 +225,9 @@ async function fetchNewspapers() {
             <div class="topic-content1">
               <h3 class="subtitle">Ampliar Conhecimento</h3>
               <p class="description">
-                Promovemos conteúdo educativo e informativo que contribui para o desenvolvimento intelectual de nossos leitores, inspirando o pensamento crítico e a curiosidade pelo conhecimento.
+                Promovemos conteúdo educativo e informativo que contribui para o
+                desenvolvimento intelectual de nossos leitores, inspirando o
+                pensamento crítico e a curiosidade pelo conhecimento.
               </p>
             </div>
           </li>
@@ -165,7 +236,11 @@ async function fetchNewspapers() {
           <div class="divisor-objective"></div>
           <div class="images-divisor">
             <img src="../assets/icons_highlights/icon5.png" alt="" />
-            <img class="image-right" src="../assets/icons_highlights/icon5.png" alt="" />
+            <img
+              class="image-right"
+              src="../assets/icons_highlights/icon5.png"
+              alt=""
+            />
           </div>
         </div>
         <ul class="item-objective2">
@@ -173,7 +248,9 @@ async function fetchNewspapers() {
             <div class="topic-content2">
               <h3 class="subtitle">Fortalecer Identidades</h3>
               <p class="description">
-                Celebramos a diversidade e promovemos a inclusão, reconhecendo e valorizando as diferentes vozes, experiências e perspectivas que enriquecem nossa comunidade.
+                Celebramos a diversidade e promovemos a inclusão, reconhecendo e
+                valorizando as diferentes vozes, experiências e perspectivas que
+                enriquecem nossa comunidade.
               </p>
             </div>
             <div class="icon">
@@ -184,7 +261,9 @@ async function fetchNewspapers() {
             <div class="topic-content2">
               <h3 class="subtitle">Engajar a Comunidade</h3>
               <p class="description">
-                Criamos um espaço de diálogo e troca de ideias onde todos possam compartilhar suas histórias, aprender com os outros e contribuir para um futuro mais consciente e conectado.
+                Criamos um espaço de diálogo e troca de ideias onde todos possam
+                compartilhar suas histórias, aprender com os outros e contribuir
+                para um futuro mais consciente e conectado.
               </p>
             </div>
             <div class="icon">
@@ -197,17 +276,23 @@ async function fetchNewspapers() {
 
     <section class="insight">
       <div class="icon-top-right">
-        <img src="../assets/icons_highlights/icon6.png" alt="Ícone superior direito" />
+        <img
+          src="../assets/icons_highlights/icon6.png"
+          alt="Ícone superior direito"
+        />
       </div>
       <div class="insight-content">
         <h2 class="title3">Busca pelo Saber</h2>
         <p class="word">
           "Sem a cultura, e a liberdade relativa que ela pressupõe, a sociedade,
-          por mais perfeita que seja, não passa de uma selva. É por isso que toda
-          a criação autêntica é um dom para o futuro."
+          por mais perfeita que seja, não passa de uma selva. É por isso que
+          toda a criação autêntica é um dom para o futuro."
         </p>
         <div class="author">
-          <img src="../assets/author.png" alt="Imagem do autor da frase, Albert Camus" />
+          <img
+            src="../assets/author.png"
+            alt="Imagem do autor da frase, Albert Camus"
+          />
           <div class="author-content">
             <p class="name">Albert Camus</p>
             <p class="text">Escritor e Filósofo</p>
@@ -215,7 +300,10 @@ async function fetchNewspapers() {
         </div>
       </div>
       <div class="icon-bottom-left">
-        <img src="../assets/icons_highlights/icon7.png" alt="Ícone inferior esquerdo" />
+        <img
+          src="../assets/icons_highlights/icon7.png"
+          alt="Ícone inferior esquerdo"
+        />
       </div>
     </section>
 
@@ -226,31 +314,34 @@ async function fetchNewspapers() {
           <h1 class="title2">📸 Nossa Galeria</h1>
           <div class="divisor"></div>
         </div>
-        <p class="gallery-subtitle">Uma prévia dos registros visuais e produções artísticas da comunidade</p>
+
+        <p class="gallery-subtitle">
+          Uma prévia dos registros visuais e produções artísticas da comunidade
+        </p>
       </div>
 
-      <div class="bento-gallery">
-        <div class="bento-item main-item">
-          <img src="https://picsum.photos/800/800?random=11" alt="Destaque Galeria" />
-          <div class="bento-overlay">
-            <span>Artes e Expressão</span>
+      <div class="bento-gallery" v-if="galleryImages.length">
+        <div
+          v-for="(image, index) in galleryImages.slice(0, 6)"
+          :key="image.id"
+          class="bento-item"
+          :class="getGalleryClass(index)"
+        >
+          <img
+            :src="image.image_url"
+            :alt="`Imagem ${index + 1}`"
+            loading="lazy"
+          />
+
+          <!-- Overlay somente na primeira imagem -->
+          <div v-if="index === 0" class="bento-overlay">
+            <span>{{ getMainImageCategory() }}</span>
           </div>
         </div>
-        <div class="bento-item tall-item">
-          <img src="https://picsum.photos/600/900?random=12" alt="Foto Vertical Home" />
-        </div>
-        <div class="bento-item tall-item">
-          <img src="https://picsum.photos/600/900?random=16" alt="Foto Vertical Home" />
-        </div>
-        <div class="bento-item wide-item">
-          <img src="https://picsum.photos/900/600?random=13" alt="Foto Horizontal Home" />
-        </div>
-        <div class="bento-item standard-item">
-          <img src="https://picsum.photos/600/600?random=14" alt="Foto Galeria Home" />
-        </div>
-        <div class="bento-item standard-item">
-          <img src="https://picsum.photos/600/600?random=15" alt="Foto Galeria Home" />
-        </div>
+      </div>
+
+      <div v-else class="gallery-empty">
+        <p>Nenhuma imagem cadastrada.</p>
       </div>
 
       <button class="btn btn-primary" @click="goToGallery">
@@ -265,7 +356,9 @@ async function fetchNewspapers() {
           <h1 class="title2">📰 Leia Nossos Jornais</h1>
           <div class="divisor"></div>
         </div>
-        <p class="newspapers-subtitle">Explore edições especiais e mantenha-se informado</p>
+        <p class="newspapers-subtitle">
+          Explore edições especiais e mantenha-se informado
+        </p>
       </div>
       <div class="newspapers-grid">
         <CardNewspaper
@@ -289,7 +382,9 @@ async function fetchNewspapers() {
           <h1 class="title2">✍️ Postagens Recentes</h1>
           <div class="divisor"></div>
         </div>
-        <p class="recent-posts-subtitle">Acompanhe os últimos artigos e histórias da comunidade</p>
+        <p class="recent-posts-subtitle">
+          Acompanhe os últimos artigos e histórias da comunidade
+        </p>
       </div>
       <div class="posts">
         <CardPost
@@ -316,6 +411,18 @@ async function fetchNewspapers() {
 </template>
 
 <style scoped>
+.gallery-empty {
+  width: 100%;
+  height: 320px;
+  border-radius: 20px;
+  border: 2px dashed #d6d6d6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+  font-family: var(--primary-font);
+  font-size: 16px;
+}
 
 /* ===== Gallery Preview (Novo) ===== */
 .gallery-preview {
@@ -361,7 +468,9 @@ async function fetchNewspapers() {
   overflow: hidden;
   border-radius: 20px; /* Alinhado com o estilo dos seus cards/botões */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
+  transition:
+    transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    box-shadow 0.3s ease;
 }
 
 .bento-item:hover {
@@ -406,7 +515,7 @@ async function fetchNewspapers() {
   backdrop-filter: blur(4px);
   padding: 0.4rem 1rem;
   border-radius: 30px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .bento-overlay span {
@@ -428,10 +537,22 @@ async function fetchNewspapers() {
     grid-auto-rows: 130px;
   }
   /* Remodela o grid para 3 colunas */
-  .bento-item.main-item { grid-column: span 2; grid-row: span 2; }
-  .bento-item.tall-item { grid-column: span 1; grid-row: span 2; }
-  .bento-item.wide-item { grid-column: span 2; grid-row: span 1; }
-  .bento-item.standard-item { grid-column: span 1; grid-row: span 1; }
+  .bento-item.main-item {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+  .bento-item.tall-item {
+    grid-column: span 1;
+    grid-row: span 2;
+  }
+  .bento-item.wide-item {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+  .bento-item.standard-item {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
 }
 
 @media (max-width: 768px) {
@@ -552,10 +673,18 @@ async function fetchNewspapers() {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 
-.list-themes li:nth-child(1) .container-icon { background-color: var(--pastel-pink); }
-.list-themes li:nth-child(2) .container-icon { background-color: var(--pastel-green); }
-.list-themes li:nth-child(3) .container-icon { background-color: var(--pastel-orange); }
-.list-themes li:nth-child(4) .container-icon { background-color: var(--pastel-blue); }
+.list-themes li:nth-child(1) .container-icon {
+  background-color: var(--pastel-pink);
+}
+.list-themes li:nth-child(2) .container-icon {
+  background-color: var(--pastel-green);
+}
+.list-themes li:nth-child(3) .container-icon {
+  background-color: var(--pastel-orange);
+}
+.list-themes li:nth-child(4) .container-icon {
+  background-color: var(--pastel-blue);
+}
 
 .container-icon img {
   width: 65%;
@@ -654,10 +783,18 @@ async function fetchNewspapers() {
   flex-shrink: 0;
 }
 
-.item-objective1 li:nth-child(1) .icon { background-color: var(--pastel-pink); }
-.item-objective1 li:nth-child(2) .icon { background-color: var(--pastel-orange); }
-.item-objective2 li:nth-child(1) .icon { background-color: var(--pastel-green); }
-.item-objective2 li:nth-child(2) .icon { background-color: var(--pastel-blue); }
+.item-objective1 li:nth-child(1) .icon {
+  background-color: var(--pastel-pink);
+}
+.item-objective1 li:nth-child(2) .icon {
+  background-color: var(--pastel-orange);
+}
+.item-objective2 li:nth-child(1) .icon {
+  background-color: var(--pastel-green);
+}
+.item-objective2 li:nth-child(2) .icon {
+  background-color: var(--pastel-blue);
+}
 
 .icon img {
   width: 65%;
@@ -751,7 +888,8 @@ async function fetchNewspapers() {
   border: 2px solid transparent;
   background:
     linear-gradient(white, white) padding-box,
-    linear-gradient(to right, #aca16d, #6dac7e, #41d0da, #7e4ba0, #da4167) border-box;
+    linear-gradient(to right, #aca16d, #6dac7e, #41d0da, #7e4ba0, #da4167)
+      border-box;
 }
 
 .icon-top-right {
@@ -897,7 +1035,10 @@ async function fetchNewspapers() {
   font-family: var(--primary-font);
   font-size: 14px;
   font-weight: 500;
-  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .btn:hover {
@@ -913,7 +1054,7 @@ async function fetchNewspapers() {
 }
 
 .btn-primary::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;

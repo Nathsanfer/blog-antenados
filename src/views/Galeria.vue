@@ -1,5 +1,6 @@
 <script>
 import HeaderTemplate from "../components/HeaderTemplate.vue";
+import FooterTemplate from "../components/FooterTemplate.vue";
 import { supabase } from "../composables/useSupabase.js";
 import { CATEGORY_ICONS } from "../lib/categories.ts";
 
@@ -7,6 +8,7 @@ export default {
   name: "Galeria",
   components: {
     HeaderTemplate,
+    FooterTemplate,
   },
   data() {
     return {
@@ -327,6 +329,8 @@ export default {
     alt="Imagem ampliada"
   />
 </div>
+
+  <FooterTemplate />
 </template>
 
 <style scoped>
