@@ -4,6 +4,7 @@ import HeaderTemplate from "../components/HeaderTemplate.vue";
 import CardPost from "../components/CardPost.vue";
 import CardNewspaper from "../components/CardNewspaper.vue";
 import CardCategory from "../components/CardCategory.vue";
+import RichTextEditor from "../components/RichTextEditor.vue";
 import { supabase } from "../composables/useSupabase";
 
 export default {
@@ -14,6 +15,7 @@ export default {
     CardPost,
     CardNewspaper,
     CardCategory,
+    RichTextEditor,
   },
   data() {
     return {
@@ -23,35 +25,30 @@ export default {
       activeSection: "artigos",
       activeStatusFilter: "todos",
 
-      // Controle do Modal de Criação / Edição
       showModal: false,
       isSubmitting: false,
       isEditing: false,
       editingId: null,
       isTeacherLogged: false,
 
-      // Controle de Exclusão Customizada
       deleteConfig: {
         show: false,
         id: null,
         isDeleting: false,
       },
 
-      // Sistema de Notificações (Toasts)
       toast: {
         show: false,
         message: "",
-        type: "success", // 'success' ou 'error'
+        type: "success",
       },
       toastTimeout: null,
 
-      // Arquivos selecionados pelo usuário para upload
       imageFile: null,
-      pdfFile: null,
 
-      // Modelos de dados dos Formulários
+      // Atualizado o modelo do Jornal
       formPost: { title: "", subtitle: "", content: "", category_id: "", status: "draft" },
-      formNewspaper: { title: "" },
+      formNewspaper: { title: "", content: "", category_id: "", status: "draft" },
       formCategory: { name: "", description: "", color: "#6dac7e", icon: "article" },
 
       statusLabels: { draft: "Rascunho", published: "Publicado", archived: "Arquivado" },
@@ -95,7 +92,6 @@ export default {
     await this.loadCategories();
   },
   methods: {
-    // Método para exibir toasts de notificação
     showToast(message, type = "success") {
       this.toast.message = message;
       this.toast.type = type;
@@ -105,18 +101,15 @@ export default {
 
       this.toastTimeout = setTimeout(() => {
         this.toast.show = false;
-      }, 3500); // Some após 3.5 segundos
+      }, 3500);
     },
 
     async checkUserPermissions() {
       try {
-        // verifica se existe uma sessão ativa no Supabase Auth
         const { data: { user }, error } = await supabase.auth.getUser();
-
         if (error || !user) {
           this.isTeacherLogged = false;
         } else {
-          // tem usuário logado
           this.isTeacherLogged = true;
         }
       } catch (error) {
@@ -124,15 +117,11 @@ export default {
         this.isTeacherLogged = false;
       }
     },
-    // Captura de Arquivos nos Inputs Customizados
+
     handleImageChange(event) {
       this.imageFile = event.target.files[0];
     },
-    handlePdfChange(event) {
-      this.pdfFile = event.target.files[0];
-    },
 
-    // Métodos de Carregamento
     async loadPosts() {
       try {
         const { data, error } = await supabase
@@ -159,11 +148,13 @@ export default {
         this.showToast("Erro ao carregar artigos.", "error");
       }
     },
+
+    // LoadNewspapers atualizado para carregar a capa e as relações
     async loadNewspapers() {
       try {
         const { data, error } = await supabase
           .from("newspapers")
-          .select("*")
+          .select("*, categories(name, color), users(name)")
           .order("created_at", { ascending: false });
 
         if (error) throw error;
@@ -171,7 +162,11 @@ export default {
         this.newspapers = (data || []).map((n) => ({
           id: n.id,
           title: n.title || "",
-          pdfUrl: n.pdf_url || "",
+          image: n.cover_image_url || "../assets/post.jpg",
+          category: n.categories?.name || "",
+          categoryColor: n.categories?.color || "#6dac7e",
+          fullContent: n.content || "",
+          author: n.users?.name || "Anônimo",
           status: n.status || "draft",
           publishedAt: n.created_at || "",
         }));
@@ -180,6 +175,7 @@ export default {
         this.showToast("Erro ao carregar jornais.", "error");
       }
     },
+
     async loadCategories() {
       try {
         const { data, error } = await supabase
@@ -203,7 +199,6 @@ export default {
       }
     },
 
-    // Interpolação de Ações enviadas pelos Cards (Editar/Excluir)
     async handleItemAction({ action, id }) {
       if (action === 'edit') {
         this.openEditModal(id);
@@ -213,13 +208,11 @@ export default {
       }
     },
 
-    // Confirmação de Exclusão Customizada
     cancelDelete() {
       this.deleteConfig.show = false;
       this.deleteConfig.id = null;
     },
 
-    // Confirmação de Exclusão Customizada com Prompt de Confirmação
     async confirmDelete() {
       this.deleteConfig.isDeleting = true;
       try {
@@ -242,27 +235,6 @@ export default {
       }
     },
 
-    async deleteItem(id) {
-      const confirmacao = confirm("Tem a certeza que deseja excluir este item permanentemente?");
-      if (!confirmacao) return;
-
-      try {
-        let table = this.activeSection === 'artigos' ? 'posts' :
-          this.activeSection === 'jornais' ? 'newspapers' : 'categories';
-
-        const { error } = await supabase.from(table).delete().eq('id', id);
-        if (error) throw error;
-
-        // Recarrega apenas a seção ativa após deletar
-        if (this.activeSection === 'artigos') await this.loadPosts();
-        if (this.activeSection === 'jornais') await this.loadNewspapers();
-        if (this.activeSection === 'categorias') await this.loadCategories();
-      } catch (error) {
-        alert("Erro ao excluir: " + error.message);
-      }
-    },
-
-    // Métodos de Controle de Exibição do Modal
     openModal() {
       this.isEditing = false;
       this.editingId = null;
@@ -284,8 +256,15 @@ export default {
           status: item.status
         };
       } else if (this.activeSection === 'jornais') {
+        // Editar Jornal puxando o conteúdo rico
         const item = this.newspapers.find(n => n.id === id);
-        this.formNewspaper = { title: item.title };
+        const cat = this.categories.find(c => c.name === item.category);
+        this.formNewspaper = {
+          title: item.title,
+          content: item.fullContent,
+          category_id: cat ? cat.id : "",
+          status: item.status
+        };
       } else if (this.activeSection === 'categorias') {
         const item = this.categories.find(c => c.id === id);
         this.formCategory = {
@@ -307,20 +286,15 @@ export default {
 
     resetForms() {
       this.formPost = { title: "", subtitle: "", content: "", category_id: "", status: "draft" };
-      this.formNewspaper = { title: "" };
+      this.formNewspaper = { title: "", content: "", category_id: "", status: "draft" };
       this.formCategory = { name: "", description: "", color: "#6dac7e", icon: "article" };
       this.imageFile = null;
-      this.pdfFile = null;
 
-      // Reseta os inputs nativos escondidos no DOM através das referências (refs)
       if (this.$refs.imageInput) this.$refs.imageInput.value = "";
-      if (this.$refs.pdfInput) this.$refs.pdfInput.value = "";
     },
 
-    // Auxiliar de Upload para o Supabase Storage
     async uploadFileToStorage(file, folder) {
       const fileExt = file.name.split('.').pop();
-      // Garante que o arquivo possua um nome inteiramente único com timestamp e aleatoriedade
       const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
@@ -330,7 +304,6 @@ export default {
 
       if (uploadError) throw uploadError;
 
-      // Recupera o link público estruturado do bucket público
       const { data: urlData } = supabase.storage
         .from('post-images')
         .getPublicUrl(filePath);
@@ -338,14 +311,13 @@ export default {
       return urlData.publicUrl;
     },
 
-    // Operação de Persistência Principal Salvar Criado / Salvar Editado
     async handleCreate() {
       this.isSubmitting = true;
       try {
-        if (this.activeSection === "artigos") {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user && !this.isEditing) throw new Error("Usuário não autenticado.");
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user && !this.isEditing) throw new Error("Usuário não autenticado.");
 
+        if (this.activeSection === "artigos") {
           let payload = {
             title: this.formPost.title,
             subtitle: this.formPost.subtitle,
@@ -372,12 +344,20 @@ export default {
           await this.loadPosts();
 
         } else if (this.activeSection === "jornais") {
-          let payload = { title: this.formNewspaper.title };
+          // Lógica final do Jornal com Editor Rico
+          let payload = {
+            title: this.formNewspaper.title,
+            content: this.formNewspaper.content,
+            category_id: this.formNewspaper.category_id || null,
+            status: this.formNewspaper.status,
+          };
 
-          if (this.pdfFile) {
-            payload.pdf_url = await this.uploadFileToStorage(this.pdfFile, 'pdfs');
+          if (!this.isEditing) payload.author_id = user.id;
+
+          if (this.imageFile) {
+            payload.cover_image_url = await this.uploadFileToStorage(this.imageFile, 'covers');
           } else if (!this.isEditing) {
-            throw new Error("Selecione um arquivo PDF.");
+            throw new Error("Selecione uma imagem de capa para o jornal.");
           }
 
           if (this.isEditing) {
@@ -478,8 +458,10 @@ export default {
           @manage-item="handleItemAction" />
 
         <CardNewspaper v-else-if="activeSection === 'jornais'" v-for="newspaper in filteredItems" :key="newspaper.id"
-          :id="newspaper.id" :title="newspaper.title" :pdf-url="newspaper.pdfUrl" :published-at="newspaper.publishedAt"
-          :show-status="false" :can-edit="isTeacherLogged" @manage-item="handleItemAction" />
+          :id="newspaper.id" :image="newspaper.image" :category="newspaper.category"
+          :category-color="newspaper.categoryColor" :title="newspaper.title" :author="newspaper.author"
+          :status="newspaper.status" :published-at="newspaper.publishedAt" :can-edit="isTeacherLogged"
+          @manage-item="handleItemAction" />
 
         <CardCategory v-else-if="activeSection === 'categorias'" v-for="category in filteredItems" :key="category.id"
           :id="category.id" :name="category.name" :description="category.description" :color="category.color"
@@ -545,14 +527,33 @@ export default {
               <input v-model="formNewspaper.title" type="text" required placeholder="Ex: Edição Nº 45 - Outubro" />
             </div>
             <div class="form-group">
-              <label>Arquivo PDF do Jornal <span v-if="!isEditing">*</span></label>
+              <label>Categoria do Jornal *</label>
+              <select v-model="formNewspaper.category_id" required>
+                <option value="" disabled>Selecione uma categoria</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Imagem de Capa do Jornal <span v-if="!isEditing">*</span></label>
               <div class="file-upload-wrapper">
-                <label for="pdf-file" class="custom-file-upload">Escolher PDF</label>
-                <input id="pdf-file" ref="pdfInput" type="file" accept=".pdf" @change="handlePdfChange"
+                <label for="newspaper-cover" class="custom-file-upload">Escolher Capa</label>
+                <input id="newspaper-cover" ref="imageInput" type="file" accept="image/*" @change="handleImageChange"
                   :required="!isEditing" />
-                <span class="file-name" v-if="pdfFile">{{ pdfFile.name }}</span>
-                <span class="file-name empty" v-else>{{ isEditing ? 'Manter arquivo atual' : 'Nenhum arquivo selecionado' }}</span>
+                <span class="file-name" v-if="imageFile">{{ imageFile.name }}</span>
+                <span class="file-name empty" v-else>{{ isEditing ? 'Manter capa atual' : 'Nenhuma selecionada'
+                  }}</span>
               </div>
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select v-model="formNewspaper.status">
+                <option value="draft">Rascunho</option>
+                <option value="published">Publicado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Conteúdo da Edição *</label>
+              <RichTextEditor v-model="formNewspaper.content" />
             </div>
           </div>
 
@@ -616,7 +617,7 @@ export default {
 </template>
 
 <style scoped>
-/*  Estilos da Página  */
+
 .header-page {
   display: flex;
   max-width: 1200px;
@@ -1113,7 +1114,6 @@ main {
     flex: 1;
   }
 
-  /* Ajusta o toast para tablet e mobile */
   .toast-notification {
     top: auto;
     bottom: 30px;
@@ -1128,8 +1128,6 @@ main {
   .toast-slide-leave-to {
     transform: translate(50%, 50px);
   }
-
-  /* Ajuste de eixo X e Y */
 }
 
 @media (max-width: 480px) {
@@ -1213,7 +1211,6 @@ main {
     gap: 1rem;
   }
 
-  /* Ajustes dos Modais no Mobile */
   .modal-content {
     width: 95%;
     padding: 1.25rem 1rem;

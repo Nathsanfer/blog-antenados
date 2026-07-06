@@ -1,43 +1,21 @@
 <script>
-// Importar pdf.js
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
-
-// Definir o worker - usando a versão correta do caminho
-import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
-
 export default {
   name: "CardNewspaper",
   props: {
-    id: {
-      type: [Number, String],
-      required: true,
-    },
-    title: {
-      type: String,
-      default: "",
-    },
-    publishedAt: {
-      type: String,
-      default: "",
-    },
-    pdfUrl: {
-      type: String,
-      default: "",
-    },
-    // Propriedade para controlar a permissão de edição
-    canEdit: {
-      type: Boolean,
-      default: false,
-    },
+    id: { type: [Number, String], required: true },
+    image: { type: String, default: "" },
+    category: { type: String, default: "" },
+    categoryColor: { type: String, default: "#6dac7e" },
+    title: { type: String, default: "" },
+    author: { type: String, default: "" },
+    status: { type: String, default: "draft" },
+    publishedAt: { type: String, default: "" },
+    canEdit: { type: Boolean, default: false },
   },
   data() {
     return {
-      showPdfModal: false,
-      pdfThumbnail: null,
-      loadingThumbnail: true,
-      showMenu: false, // Controle do menu de opções (⋮)
+      statusLabels: { published: "Publicado", draft: "Rascunho", archived: "Arquivado" },
+      showMenu: false,
     };
   },
   computed: {
@@ -51,52 +29,17 @@ export default {
       });
     },
   },
-  async mounted() {
-    if (this.pdfUrl) {
-      await this.generateThumbnail();
-    }
-    // Event listener para fechar o menu ao clicar fora
+  mounted() {
     document.addEventListener("click", this.closeMenu);
   },
   unmounted() {
-    // Remover listener ao destruir o componente
     document.removeEventListener("click", this.closeMenu);
   },
   methods: {
-    async generateThumbnail() {
-      try {
-        const pdf = await pdfjsLib.getDocument(this.pdfUrl).promise;
-        const page = await pdf.getPage(1);
-
-        const scale = 2;
-        const viewport = page.getViewport({ scale });
-
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        await page.render({
-          canvasContext: context,
-          viewport: viewport,
-        }).promise;
-
-        this.pdfThumbnail = canvas.toDataURL("image/jpeg", 0.8);
-      } catch (error) {
-        console.error("Erro ao gerar thumbnail do PDF:", error);
-      } finally {
-        this.loadingThumbnail = false;
-      }
+    // Redireciona para a página de leitura do jornal digital
+    goToNewspaper() {
+      this.$router.push(`/jornal/${this.id}`);
     },
-    openPdf() {
-      if (this.pdfUrl) {
-        this.showPdfModal = true;
-      }
-    },
-    closePdfModal() {
-      this.showPdfModal = false;
-    },
-    // métodos para o botão de opções Editar/Excluir
     toggleMenu() {
       this.showMenu = !this.showMenu;
     },
@@ -112,61 +55,36 @@ export default {
 </script>
 
 <template>
-  <div class="card" @click="openPdf">
+  <div class="card" @click="goToNewspaper">
+    <div class="image-wrapper">
+      <img :src="image" :alt="title" />
 
-    <div class="newspaper-cover" :class="{ 'has-thumbnail': pdfThumbnail }">
+      <span v-if="category" class="category-badge" :style="{ backgroundColor: categoryColor }">
+        {{ category }}
+      </span>
+
       <div v-if="canEdit" class="card-options-wrapper">
         <button type="button" class="btn-options" @click.stop="toggleMenu">⋮</button>
-
         <div v-if="showMenu" class="options-dropdown">
           <button type="button" @click.stop="handleAction('edit')">Editar</button>
           <button type="button" class="delete-action" @click.stop="handleAction('delete')">Excluir</button>
         </div>
       </div>
-
-      <div v-if="loadingThumbnail" class="cover-content">
-        <div class="newspaper-icon">📰</div>
-        <div class="newspaper-label">Carregando...</div>
-      </div>
-      <img v-else-if="pdfThumbnail" :src="pdfThumbnail" :alt="title" class="pdf-thumbnail" />
-      <div v-else class="cover-content">
-        <div class="newspaper-icon">📰</div>
-        <div class="newspaper-label">Jornal</div>
-      </div>
     </div>
 
-    <h4 class="title-newspaper">{{ title }}</h4>
-    <p class="publication-date" v-if="publishedAt">
-      {{ formattedDate }}
-    </p>
-    <div class="divisor-post"></div>
-    <p class="action">
-      <strong>Abrir PDF</strong>
-    </p>
-  </div>
-
-  <div v-if="showPdfModal" class="pdf-modal-overlay" @click="closePdfModal">
-    <div class="pdf-modal" @click.stop>
-      <div class="pdf-modal-header">
-        <h3>{{ title }}</h3>
-        <div class="header-actions">
-          <a :href="pdfUrl" target="_blank" class="open-native-btn">
-            Abrir PDF
-          </a>
-          <button class="close-btn" @click="closePdfModal">✕</button>
-        </div>
-      </div>
-      <iframe :src="`${pdfUrl}#toolbar=1&view=FitH`" class="pdf-viewer" title="Visualizador de PDF"></iframe>
+    <div class="card-text-content">
+      <h4 class="title-newspaper">{{ title }}</h4>
+      <p class="publication-date" v-if="publishedAt">Lançamento: {{ formattedDate }}</p>
+      <div class="divisor-post"></div>
+      <p class="action-read">Ler Edição Digital <span>➔</span></p>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Card base */
 .card {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   background: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   border-radius: 20px;
@@ -182,31 +100,33 @@ export default {
   box-shadow: 0 12px 32px rgba(109, 172, 131, 0.25);
 }
 
-.newspaper-cover {
+.image-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.card img {
   width: 100%;
   height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  flex-direction: column;
-  gap: 1rem;
+  object-fit: cover;
+  display: block;
 }
 
-.newspaper-cover:not(.has-thumbnail) {
-  background: linear-gradient(135deg, #6dac7e 0%, #41d0da 100%);
-}
-
-.newspaper-cover::before {
-  content: "";
+.category-badge {
   position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.05);
-  z-index: 1;
+  top: 0.9rem;
+  left: 0.9rem;
+  z-index: 3;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  font-size: 11px;
+  font-family: var(--primary-font);
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
 }
 
-/* Estilos para o menus de opcoes ⋮ */
+/* Menu de opções ⋮ */
 .card-options-wrapper {
   position: absolute;
   top: 0.9rem;
@@ -216,7 +136,6 @@ export default {
 
 .btn-options {
   background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(4px);
   border: 1px solid #dddddd;
   border-radius: 50%;
   width: 32px;
@@ -226,9 +145,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  padding: 0;
   color: #333;
+  padding: 0;
 }
 
 .btn-options:hover {
@@ -248,6 +166,7 @@ export default {
   flex-direction: column;
   padding: 0.4rem;
   min-width: 110px;
+  z-index: 100;
 }
 
 .options-dropdown button {
@@ -274,242 +193,57 @@ export default {
   background-color: #fff0f2;
 }
 
-.pdf-thumbnail {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-  position: absolute;
-  inset: 0;
-}
-
-.cover-content {
-  position: relative;
-  z-index: 2;
+/* Textos */
+.card-text-content {
+  padding: 1rem 1.2rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
   flex-direction: column;
-  gap: 0.5rem;
-}
-
-.newspaper-icon {
-  width: 60px;
-  height: 60px;
-  opacity: 0.85;
-  color: white;
-  font-size: 50px;
-}
-
-.newspaper-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-  font-family: var(--secondary-font);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  flex: 1;
 }
 
 .title-newspaper {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 500;
   font-family: var(--secondary-font);
   margin: 0;
-  padding: 0.75rem 0.75rem 0;
+  color: #222;
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .publication-date {
-  font-size: 10.5px;
+  font-size: 11px;
   font-family: var(--primary-font);
-  margin: 0;
-  font-weight: 300;
-  padding: 0.5rem 0.75rem;
-  line-height: 1.65;
-  color: #888;
+  margin: 0.5rem 0;
+  color: #777;
   flex: 1;
+  font-weight: 300;
 }
 
 .divisor-post {
-  width: 92%;
+  width: 100%;
   height: 1px;
   background-color: #ececec;
-  margin: 0 auto;
+  margin: 0.5rem 0;
 }
 
-.action {
-  font-size: 11px;
+.action-read {
+  font-size: 12px;
   font-family: var(--primary-font);
-  color: #333;
+  color: var(--color-green, #6dac7e);
   margin: 0;
-  padding: 0.5rem 0.75rem 1rem;
-}
-
-.action strong {
-  color: var(--color-green);
   font-weight: 600;
-}
-
-/* Modal PDF */
-.pdf-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.pdf-modal {
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 900px;
-  height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
-  animation: slideUp 0.3s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.pdf-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #ececec;
-  background: #f9f9f9;
-}
-
-.pdf-modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-family: var(--secondary-font);
-  color: #333;
-  flex: 1;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #999;
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background-color: #f0f0f0;
-  color: #333;
-}
-
-.pdf-viewer {
-  flex: 1;
-  border: none;
-  width: 100%;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.open-native-btn {
-  background-color: var(--color-green, #6dac7e);
-  color: #fff;
-  text-decoration: none;
-  font-size: 13px;
-  font-family: var(--primary-font);
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.open-native-btn:hover {
-  background-color: #558a62;
-}
-
-/* Media queries */
-@media (max-width: 768px) {
-  .pdf-modal {
-    width: 95%;
-    height: 90vh;
-  }
-
-  .pdf-modal-header h3 {
-    font-size: 16px;
-  }
+  gap: 0.5rem;
 }
 
 @media (max-width: 480px) {
-  .newspaper-cover {
-    height: 140px;
-  }
-
   .title-newspaper {
-    font-size: 18px;
-  }
-
-  .pdf-modal-overlay {
-    padding: 0;
-  }
-
-  .pdf-modal {
-    width: 90%;
-    height: 600px;
-    max-height: 100vh;
-    max-width: 100%;
-    border-radius: 20px;
-  }
-
-  .pdf-modal-header {
-    padding: 0.8rem 1rem;
-  }
-
-  .pdf-modal-header h3 {
-    font-size: 15px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 50%;
-  }
-
-  .open-native-btn {
-    font-size: 12px;
-    padding: 0.4rem 0.6rem;
+    font-size: 16px;
   }
 }
 </style>

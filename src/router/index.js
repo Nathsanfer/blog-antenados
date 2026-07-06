@@ -7,6 +7,7 @@ import Perfil from '../views/Perfil.vue'
 import BlogDetalhe from '../views/BlogDetalhe.vue'
 import Jornais from '../views/Jornais.vue'
 import Galeria from '../views/Galeria.vue'
+import LeituraJornal from '../views/LeituraJornal.vue'
 
 const routes = [
   { path: '/', component: Home },
@@ -16,7 +17,8 @@ const routes = [
   { path: '/criacao', component: Criacao },
   { path: '/perfil', component: Perfil },
   { path: '/galeria', component: Galeria },
-  { path: '/jornais', component: Jornais }
+  { path: '/jornais', component: Jornais },
+  { path: '/jornal/:id', name: 'Jornal', component: LeituraJornal }
 ]
 
 const router = createRouter({
