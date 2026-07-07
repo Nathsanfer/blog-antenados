@@ -473,7 +473,7 @@ export default {
 
   <transition name="fade">
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal-content">
+      <div class="modal-content" :class="{ 'modal-large': activeSection === 'artigos' || activeSection === 'jornais' }">
         <div class="modal-header">
           <h2>{{ isEditing ? 'Editar' : 'Criar' }} {{ currentSection.actionLabel }}</h2>
           <button class="close-btn" @click="closeModal">&times;</button>
@@ -786,14 +786,25 @@ main {
 
 .modal-content {
   background-color: #ffffff;
-  width: 90%;
-  max-width: 550px;
-  max-height: 85vh;
+  width: 95%;
+  max-width: 500px;
+  max-height: 90vh;
   border-radius: 24px;
   padding: 1.5rem 2rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
+  transition: max-width 0.3s ease;
+}
+
+.modal-content.modal-large {
+  max-width: 1000px;
+}
+
+.form-group-container {
+  overflow-y: auto;
+  max-height: 50vh;
+  padding-right: 0.5rem;
 }
 
 .modal-header {
@@ -807,6 +818,13 @@ main {
   font-family: var(--secondary-font);
   font-size: 22px;
   margin: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .close-btn {
@@ -825,10 +843,9 @@ main {
 /* Formulários */
 .form-group-container {
   overflow-y: auto;
-  max-height: 50vh;
+  flex: 1;
   padding-right: 0.5rem;
 }
-
 .form-group {
   display: flex;
   flex-direction: column;

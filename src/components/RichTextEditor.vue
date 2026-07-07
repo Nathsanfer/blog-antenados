@@ -131,7 +131,7 @@ export default {
 
 :deep(.ql-container) {
     border: none !important;
-    min-height: 250px;
+    min-height: 450px;
     font-family: var(--primary-font, sans-serif);
     font-size: 15px;
 }
