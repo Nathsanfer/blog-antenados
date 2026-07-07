@@ -1,10 +1,51 @@
 <script>
 import HeaderTemplate from "../components/HeaderTemplate.vue";
+import FooterTemplate from "../components/FooterTemplate.vue";
+import CardNewspaper from "../components/CardNewspaper.vue";
+import { supabase } from "../composables/useSupabase";
 
 export default {
   name: "Jornais",
   components: {
     HeaderTemplate,
+    FooterTemplate,
+    CardNewspaper,
+  },
+  data() {
+    return {
+      newspapers: [],
+      loading: true,
+    };
+  },
+  async mounted() {
+    await this.loadPublishedNewspapers();
+  },
+  methods: {
+    async loadPublishedNewspapers() {
+      try {
+        const { data, error } = await supabase
+          .from("newspapers")
+          .select("*, categories(name, color), users(name)")
+          .eq("status", "published") // Traz apenas jornais publicamente disponíveis
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        this.newspapers = (data || []).map((n) => ({
+          id: n.id,
+          image: n.cover_image_url || "../assets/post.jpg",
+          category: n.categories?.name || "",
+          categoryColor: n.categories?.color || "#6dac7e",
+          title: n.title || "",
+          author: n.users?.name || "Equipe Escolar",
+          publishedAt: n.created_at || "",
+        }));
+      } catch (e) {
+        console.error("Erro ao buscar os jornais:", e);
+      } finally {
+        this.loading = false;
+      }
+    },
   },
 };
 </script>
@@ -13,28 +54,37 @@ export default {
   <HeaderTemplate />
 
   <div class="header-page">
-    <img
-      src="../assets/icons_highlights/icon9.png"
-      alt="Icone de Beca"
-      class="icon-desktop"
-    />
-    <img src="../assets/icons_highlights/icon10.png" alt="Icone de Lâmpada" />
     <div class="divisor"></div>
-    <h1>Jornais</h1>
+    <h1>Edições do Jornal Escolar</h1>
     <div class="divisor"></div>
-    <img src="../assets/icons_highlights/icon11.png" alt="Icone de Livro" />
-    <img
-      src="../assets/icons_highlights/icon12.png"
-      alt="Icone de Colmeia"
-      class="icon-desktop"
-    />
   </div>
 
   <main>
-    <h1>Jornais</h1>
-    <h2>Em breve, você poderá acessar os jornais do IFSP</h2>
+    <div v-if="loading" class="loading-state">
+      <p>Buscando edições...</p>
+    </div>
+
+    <div v-else-if="newspapers.length === 0" class="empty-state">
+      <p>Nenhuma edição do jornal foi publicada ainda.</p>
+    </div>
+
+    <div v-else class="posts-grid">
+      <CardNewspaper 
+        v-for="newspaper in newspapers" 
+        :key="newspaper.id"
+        :id="newspaper.id" 
+        :image="newspaper.image" 
+        :category="newspaper.category" 
+        :category-color="newspaper.categoryColor"
+        :title="newspaper.title" 
+        :author="newspaper.author" 
+        :published-at="newspaper.publishedAt"
+        :can-edit="false" 
+      />
+    </div>
   </main>
 
+  <FooterTemplate />
 </template>
 
 <style scoped>
@@ -42,16 +92,10 @@ export default {
   display: flex;
   max-width: 1200px;
   width: 90%;
-  margin: 1rem auto;
+  margin: 3rem auto 1rem;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-}
-
-.header-page img {
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
+  gap: 1.5rem;
 }
 
 .divisor {
@@ -61,21 +105,46 @@ export default {
 }
 
 .header-page h1 {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 500;
   font-family: var(--secondary-font);
-  white-space: nowrap;
+  color: #222;
+  text-align: center;
 }
 
 main {
-  display: flex;
-  margin: 0 auto;
-  flex-direction:  column;
   max-width: 1200px;
   width: 90%;
-  margin: 2rem auto 4rem;
+  margin: 2rem auto 5rem;
+  min-height: 40vh;
+}
+
+.posts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
-  overflow-x: hidden;
-  background-color: #000;
+}
+
+.loading-state, .empty-state {
+  text-align: center;
+  padding: 4rem 0;
+  font-family: var(--primary-font);
+  color: #666;
+  font-size: 18px;
+}
+
+@media (max-width: 1024px) {
+  .posts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .header-page h1 {
+    font-size: 24px;
+  }
+  .posts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
