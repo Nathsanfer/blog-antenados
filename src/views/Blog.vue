@@ -3,7 +3,6 @@ import HeaderTemplate from "../components/HeaderTemplate.vue";
 import FooterTemplate from "../components/FooterTemplate.vue";
 import CardPost from "../components/CardPost.vue";
 import CardNewspaper from "../components/CardNewspaper.vue";
-import imagemPost from "../assets/post.jpg";
 import { supabase } from "../composables/useSupabase";
 
 export default {
@@ -28,7 +27,7 @@ export default {
     await this.loadCategories();
     await this.loadPosts();
     await this.loadNewspapers();
-    
+
     // Verificar se há um query parameter para definir a seção ativa
     const section = this.$route.query.section;
     if (section === 'jornais' || section === 'artigos') {
@@ -40,12 +39,10 @@ export default {
       try {
         const { data, error } = await supabase
           .from("categories")
-          .select("*");
+          .select("*")
+          .order("name"); // Organiza por ordem alfabética
 
-        if (error) {
-          console.error("Erro ao buscar as categorias:", error);
-          return;
-        }
+        if (error) throw error;
 
         this.categories = (data || []).map((c) => ({
           id: c.id,
@@ -65,10 +62,7 @@ export default {
           .eq("status", "published")
           .order("created_at", { ascending: false });
 
-        if (error) {
-          console.error("Erro ao buscar os posts:", error);
-          return;
-        }
+        if (error) throw error;
 
         this.posts = (data || []).map((p) => ({
           id: p.id,
@@ -77,7 +71,7 @@ export default {
           categoryColor: p.category_color || "#da4167",
           title: p.title || "",
           content: p.subtitle || "",
-          author: p.author_name || "Desconecido",
+          author: p.author_name || "Desconhecido",
           status: p.status || "draft",
         }));
       } catch (e) {
@@ -88,19 +82,20 @@ export default {
       try {
         const { data, error } = await supabase
           .from("newspapers")
-          .select("*")
+          .select("*, categories(name, color), users(name)")
+          .eq("status", "published")
           .order("created_at", { ascending: false });
 
-        if (error) {
-          console.error("Erro ao buscar os jornais:", error);
-          return;
-        }
+        if (error) throw error;
 
         this.newspapers = (data || []).map((n) => ({
           id: n.id,
           title: n.title || "",
-          pdfUrl: n.pdf_url || "",
-          createdAt: n.created_at || "",
+          image: n.cover_image_url || "../assets/post.jpg",
+          category: n.categories?.name || "Jornal Escolar",
+          categoryColor: n.categories?.color || "#6dac7e",
+          author: n.users?.name || "Equipe Escolar",
+          publishedAt: n.created_at || "",
         }));
       } catch (e) {
         console.error("Erro ao buscar os jornais:", e);
@@ -129,13 +124,20 @@ export default {
         return matchesSearch && matchesCategory;
       });
     },
+    // Filtra os jornais e arquivos por Categoria
     filteredNewspapers() {
       return this.newspapers.filter((newspaper) => {
         const matchesSearch =
           !this.searchQuery.trim() ||
-          newspaper.title.toLowerCase().includes(this.searchQuery.toLowerCase());
+          newspaper.title.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+          newspaper.category.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+          newspaper.author.toLowerCase().includes(this.searchQuery.toLowerCase());
 
-        return matchesSearch;
+        const matchesCategory =
+          !this.selectedCategory ||
+          newspaper.category.toLowerCase() === this.selectedCategory.toLowerCase();
+
+        return matchesSearch && matchesCategory;
       });
     },
   },
@@ -146,91 +148,57 @@ export default {
   <HeaderTemplate />
 
   <div class="header-page">
-    <img
-      src="../assets/icons_highlights/icon9.png"
-      alt="Icone de Beca"
-      class="icon-desktop"
-    />
+    <img src="../assets/icons_highlights/icon9.png" alt="Icone de Beca" class="icon-desktop" />
     <img src="../assets/icons_highlights/icon10.png" alt="Icone de Lâmpada" />
     <div class="divisor"></div>
     <h1>Blog</h1>
     <div class="divisor"></div>
     <img src="../assets/icons_highlights/icon11.png" alt="Icone de Livro" />
-    <img
-      src="../assets/icons_highlights/icon12.png"
-      alt="Icone de Colmeia"
-      class="icon-desktop"
-    />
+    <img src="../assets/icons_highlights/icon12.png" alt="Icone de Colmeia" class="icon-desktop" />
   </div>
 
   <main>
     <aside class="container-left">
       <div class="search-bar">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Realize suas buscas..."
-          class="search-input"
-        />
+        <input v-model="searchQuery" type="text" placeholder="Realize suas buscas..." class="search-input" />
         <img src="../assets/icons_highlights/icon13.png" alt="Buscar" />
       </div>
 
-      <button
-        class="option"
-        :class="{ active: activeSection === 'jornais' }"
-        @click="setSection('jornais')"
-      >
+      <button class="option" :class="{ active: activeSection === 'jornais' }" @click="setSection('jornais')">
         <h3>Jornais</h3>
       </button>
-      <button
-        class="option"
-        :class="{ active: activeSection === 'artigos' }"
-        @click="setSection('artigos')"
-      >
+      <button class="option" :class="{ active: activeSection === 'artigos' }" @click="setSection('artigos')">
         <h3>Artigos</h3>
       </button>
 
-      <h3 v-if="activeSection === 'artigos'" class="title-sidebar">Categorias</h3>
-      <div v-if="activeSection === 'artigos'" class="categories">
-        <div
-          v-for="cat in categories"
-          :key="cat.id"
-          class="category"
-          :class="{ active: selectedCategory === cat.name }"
-          :style="{ backgroundColor: cat.color }"
-          @click="selectCategory(cat.name)"
-        >
+      <h3 class="title-sidebar">Categorias</h3>
+      <div class="categories">
+        <div class="category" :class="{ active: selectedCategory === '' }" style="background-color: #666;"
+          @click="selectCategory('')">
+          <p>Todas</p>
+        </div>
+
+        <div v-for="cat in categories" :key="cat.id" class="category" :class="{ active: selectedCategory === cat.name }"
+          :style="{ backgroundColor: cat.color }" @click="selectCategory(cat.name)">
           <p>{{ cat.name }}</p>
         </div>
       </div>
-
     </aside>
 
     <div class="container-right">
       <div class="posts-grid">
-        <CardPost
-          v-if="activeSection === 'artigos'"
-          v-for="post in filteredPosts"
-          :key="post.id"
-          :id="post.id"
-          :image="post.image"
-          :category="post.category"
-          :category-color="post.categoryColor"
-          :title="post.title"
-          :content="post.content"
-          :author="post.author"
-          :status="post.status"
-          :show-status="false"
-        />
-        <CardNewspaper
-          v-else
-          v-for="newspaper in filteredNewspapers"
-          :key="newspaper.id"
-          :id="newspaper.id"
-          :title="newspaper.title"
-          :pdf-url="newspaper.pdfUrl"
-          :created-at="newspaper.createdAt"
-        />
+        <CardPost v-if="activeSection === 'artigos'" v-for="post in filteredPosts" :key="post.id" :id="post.id"
+          :image="post.image" :category="post.category" :category-color="post.categoryColor" :title="post.title"
+          :content="post.content" :author="post.author" :status="post.status" :show-status="false" />
+        <CardNewspaper v-else v-for="newspaper in filteredNewspapers" :key="newspaper.id" :id="newspaper.id"
+          :image="newspaper.image" :category="newspaper.category" :category-color="newspaper.categoryColor"
+          :title="newspaper.title" :author="newspaper.author" :published-at="newspaper.publishedAt" :can-edit="false" />
+      </div>
+
+      <div
+        v-if="(activeSection === 'artigos' && filteredPosts.length === 0) || (activeSection === 'jornais' && filteredNewspapers.length === 0)"
+        class="empty-feedback">
+        <p>Nenhuma publicação encontrada para os filtros aplicados.</p>
       </div>
     </div>
   </main>
@@ -239,7 +207,7 @@ export default {
 </template>
 
 <style scoped>
-/* ===== Header Page ===== */
+
 .header-page {
   display: flex;
   max-width: 1200px;
@@ -269,7 +237,6 @@ export default {
   white-space: nowrap;
 }
 
-/* ===== Main Layout ===== */
 main {
   display: flex;
   width: 85%;
@@ -283,7 +250,6 @@ main {
   overflow-x: hidden;
 }
 
-/* ===== Sidebar ===== */
 .container-left {
   width: 240px;
   flex-shrink: 0;
@@ -349,10 +315,7 @@ main {
 
 .option.active {
   border: 2px solid transparent;
-  background:
-    linear-gradient(white, white) padding-box,
-    linear-gradient(to right, #aca16d, #6dac7e, #41d0da, #7e4ba0, #da4167)
-      border-box;
+  background: linear-gradient(white, white) padding-box, linear-gradient(to right, #aca16d, #6dac7e, #41d0da, #7e4ba0, #da4167) border-box;
 }
 
 .option h3 {
@@ -361,15 +324,12 @@ main {
   font-family: var(--secondary-font);
   margin: 0;
   padding: 1rem 0;
+  pointer-events: none;
 }
 
 .option:focus-visible {
   outline: 2px solid var(--color-green);
   outline-offset: 3px;
-}
-
-.option h3 {
-  pointer-events: none;
 }
 
 .title-sidebar {
@@ -380,7 +340,6 @@ main {
   margin: 1.5rem 0 0.5rem;
 }
 
-/* Categories */
 .categories {
   display: flex;
   flex-direction: column;
@@ -396,9 +355,7 @@ main {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   text-transform: uppercase;
   position: relative;
   overflow: hidden;
@@ -421,11 +378,12 @@ main {
 .category.active {
   border: 2px solid var(--color-green);
   box-shadow: 0 0 0 3px rgba(109, 172, 126, 0.2);
+  filter: none;
 }
 
 .category p {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   font-family: var(--primary-font);
   color: #fff;
   margin: 0;
@@ -433,44 +391,9 @@ main {
   text-align: center;
   position: relative;
   z-index: 2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Journals */
-.jornals {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.jornal {
-  width: 100%;
-  height: 45px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.jornal:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.14);
-}
-
-.jornal p {
-  font-size: 12px;
-  font-family: var(--primary-font);
-  color: #333;
-  margin: 0;
-  padding: 0 0.75rem;
-}
-
-/* ===== Posts Grid ===== */
 .container-right {
   flex: 1;
   min-width: 0;
@@ -484,99 +407,24 @@ main {
   margin-top: 0.5rem;
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border-radius: 20px;
-  overflow: hidden;
-  cursor: pointer;
-  position: relative;
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
-}
-
-.card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.13);
-  z-index: 2;
-}
-
-.card img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  display: block;
-}
-
-.text-categorie {
-  font-size: 11px;
+.empty-feedback {
+  text-align: center;
+  padding: 4rem 0;
   font-family: var(--primary-font);
-  color: #da4167;
-  margin: 0;
-  padding: 0.75rem 0.75rem 0;
-  letter-spacing: 0.5px;
+  color: #777;
+  font-size: 15px;
+  border: 1px dashed #ccc;
+  border-radius: 16px;
+  background: #fafafa;
+  margin-top: 1rem;
 }
 
-.title-post {
-  font-size: 19px;
-  font-weight: 500;
-  font-family: var(--secondary-font);
-  margin: 0;
-  padding: 0.2rem 0.75rem 0;
-  line-height: 1.3;
-}
-
-.brief-content {
-  font-size: 11px;
-  font-family: var(--primary-font);
-  margin: 0;
-  font-weight: 300;
-  padding: 0.4rem 0.75rem;
-  line-height: 1.6;
-  color: #555;
-  flex: 1;
-}
-
-.brief-content strong {
-  color: var(--color-green);
-  font-weight: 600;
-}
-
-.divisor-post {
-  width: 92%;
-  height: 1px;
-  background-color: #ececec;
-  margin: 0 auto;
-}
-
-.author-post {
-  font-size: 11px;
-  font-family: var(--primary-font);
-  color: #333;
-  margin: 0;
-  padding: 0.5rem 0.75rem 1rem;
-}
-
-.author-post span {
-  color: #da4167;
-  font-weight: 500;
-}
-
-/* ============================
-   RESPONSIVE BREAKPOINTS
-   ============================ */
-
-/* Small desktop / tablet landscape */
 @media (max-width: 1100px) {
   .posts-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* Tablet portrait */
 @media (max-width: 768px) {
   main {
     flex-direction: column;
@@ -588,14 +436,11 @@ main {
     width: 100%;
   }
 
-  /* Search bar full width */
   .search-bar {
     max-width: 100%;
   }
 
-  /* Categories and journals become horizontal scroll rows */
-  .categories,
-  .jornals {
+  .categories {
     flex-direction: row;
     overflow-x: auto;
     gap: 0.6rem;
@@ -603,22 +448,19 @@ main {
     scrollbar-width: none;
   }
 
-  .categories::-webkit-scrollbar,
-  .jornals::-webkit-scrollbar {
+  .categories::-webkit-scrollbar {
     display: none;
   }
 
-  .category,
-  .jornal {
+  .category {
     flex-shrink: 0;
     width: auto;
     height: 40px;
-    padding: 0 1rem;
+    padding: 0 1.2rem;
     border-radius: 20px;
   }
 
-  .category p,
-  .jornal p {
+  .category p {
     white-space: nowrap;
     padding: 0;
   }
@@ -627,12 +469,6 @@ main {
     margin: 1rem 0 0.4rem;
   }
 
-  /* Posts: 2 columns on tablet */
-  .posts-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Header page: hide outer icons */
   .icon-desktop {
     display: none;
   }
@@ -647,7 +483,6 @@ main {
   }
 }
 
-/* Mobile */
 @media (max-width: 480px) {
   .header-page {
     gap: 0.6rem;
@@ -676,25 +511,6 @@ main {
     grid-template-columns: 1fr;
     max-width: 420px;
     margin: 0 auto;
-  }
-
-  .card img {
-    height: 200px;
-  }
-
-  .title-post {
-    font-size: 18px;
-  }
-}
-
-/* Small mobile */
-@media (max-width: 360px) {
-  .header-page h1 {
-    font-size: 20px;
-  }
-
-  .posts-grid {
-    max-width: 100%;
   }
 }
 </style>
