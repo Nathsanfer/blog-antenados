@@ -49,7 +49,6 @@ const closeMenu = () => {
       <nav class="navigation-header desktop-only">
         <router-link to="/" class="nav-link">Home</router-link>
         <router-link to="/blog" class="nav-link">Blog</router-link>
-        <router-link to="/jornais" class="nav-link">Jornais</router-link>
         <router-link to="/galeria" class="nav-link">Galeria</router-link>
         <router-link v-if="isAuthenticated" to="/criacao" class="nav-link">Criações</router-link>
       </nav>
@@ -82,7 +81,6 @@ const closeMenu = () => {
     <nav class="mobile-nav">
       <router-link to="/" class="mobile-link" @click="closeMenu">Home</router-link>
       <router-link to="/blog" class="mobile-link" @click="closeMenu">Blog</router-link>
-      <router-link to="/jornais" class="mobile-link" @click="closeMenu">Jornais</router-link>
       <router-link to="/galeria" class="mobile-link" @click="closeMenu">Galeria</router-link>
       <router-link v-if="isAuthenticated" to="/criacao" class="mobile-link" @click="closeMenu">Criações</router-link>
     </nav>
