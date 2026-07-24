@@ -99,7 +99,7 @@ export default {
 
 <style scoped>
 .reading-container {
-  max-width: 800px; /* Largura ideal para leitura agradável */
+  max-width: 900px; 
   margin: 3rem auto;
   padding: 0 1.5rem;
   min-height: 60vh;
@@ -145,7 +145,9 @@ export default {
   font-size: 36px;
   font-family: var(--secondary-font);
   color: #222;
-  margin: 0;
+  font-weight: 550;
+  margin-top: 1rem;
+  margin-bottom: 0.2rem;
   line-height: 1.2;
 }
 

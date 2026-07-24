@@ -1,4 +1,5 @@
 <script>
+import FooterTemplate from "../components/FooterTemplate.vue";
 import HeaderTemplate from "../components/HeaderTemplate.vue";
 import { supabase } from "../composables/useSupabase.js";
 import { CATEGORY_ICONS } from "../lib/categories.ts";
@@ -7,6 +8,7 @@ export default {
   name: "Galeria",
   components: {
     HeaderTemplate,
+    FooterTemplate,
   },
   data() {
     return {
@@ -363,7 +365,8 @@ export default {
         </div>
       </div>
       <button class="see-all" @click="showModal = true">
-        <p>+</p>
+        <span class="see-all-icon">+</span>
+        <span class="see-all-label">Adicionar nova imagem</span>
       </button>
     </div>
 
@@ -479,6 +482,8 @@ export default {
     alt="Imagem ampliada"
   />
 </div>
+
+  <FooterTemplate />
 </template>
 
 <style scoped>
@@ -754,11 +759,14 @@ main {
   flex-shrink: 0;
   margin-left: 0.8rem;
 }
-.see-all p {
-  margin: 0;
+.see-all-icon {
   font-weight: 400;
   color: #333;
   font-size: 20px;
+  line-height: 1;
+}
+.see-all-label {
+  display: none;
 }
 .theme {
   display: flex;
@@ -889,13 +897,132 @@ main {
 .item-gallery.horizontal {
   grid-column: span 2;
 }
-@media (max-width: 600px) {
+@media (max-width: 900px) {
+  .header-theme {
+    margin-top: 0;
+    height: auto;
+    min-height: 7rem;
+  }
+  .theme-icon {
+    width: 24%;
+  }
   .theme-content {
-    width: calc(80% - 56px);
+    width: calc(76% - 70px);
     padding: 0 1rem;
+  }
+  .title {
+    font-size: 22px;
+  }
+  .description,
+  .date {
+    font-size: 13px;
+  }
+  .container-images {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-auto-rows: 180px;
+  }
+}
+@media (max-width: 768px) {
+  .container-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+  }
+  .see-all {
+    order: -1;
+    width: 100%;
+    height: 46px;
+    border-radius: 12px;
+    margin-left: 0;
+    justify-content: center;
+    gap: 0.45rem;
+    background:
+      linear-gradient(white, white) padding-box,
+      linear-gradient(to right, #aea784, #83ae8e, #85d8de, #a274c0, #d27f94);
+  }
+  .see-all-icon {
+    font-size: 18px;
+    font-weight: 500;
+  }
+  .see-all-label {
+    display: inline;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .filters-wrapper {
+    width: 100%;
+  }
+  .theme {
+    gap: 1.25rem;
+  }
+  .header-theme {
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    align-items: start;
+    column-gap: 0.8rem;
+    padding: 0.8rem;
+    min-height: 0;
+    height: auto;
+  }
+  .theme-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
+  }
+  .theme-icon img {
+    width: 42px;
+    height: 42px;
+  }
+  .theme-content {
+    width: auto;
+    height: auto;
+    padding: 0;
+    gap: 0.35rem;
+  }
+  .theme-toggle-wrapper {
+    margin-right: 0;
+  }
+  .title {
+    font-size: 20px;
+  }
+  .description {
+    margin-bottom: 0.2rem;
+  }
+}
+@media (max-width: 600px) {
+  .container-filters {
+    gap: 0.75rem;
+  }
+  .see-all {
+    height: 42px;
+  }
+  .see-all-label {
+    font-size: 13px;
+  }
+  .header-theme {
+    grid-template-columns: 56px 1fr auto;
+    padding: 0.65rem;
+    column-gap: 0.65rem;
+  }
+  .theme-icon {
+    width: 56px;
+    height: 56px;
+  }
+  .theme-icon img {
+    width: 32px;
+    height: 32px;
+  }
+  .theme-content {
+    width: auto;
+    padding: 0;
+    gap: 0.25rem;
   }
   .theme-toggle-wrapper {
     margin-right: 0.8rem;
+    gap: 0.25rem;
   }
   .images-count {
     min-width: 24px;
@@ -904,10 +1031,17 @@ main {
     padding: 0 6px;
   }
   .toggle-theme-btn {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     margin-right: 0;
-    font-size: 15px;
+    font-size: 14px;
+  }
+  .title {
+    font-size: 17px;
+  }
+  .description,
+  .date {
+    font-size: 12px;
   }
   .item-gallery.horizontal {
     grid-column: span 1;
