@@ -124,7 +124,7 @@ const closeMenu = () => {
   justify-content: space-between;
   max-width: 1300px;
   margin: 0 auto;
-  padding: 0.8rem 2rem;
+  padding: 1.2rem 2rem;
 }
 
 .logo-header {
@@ -135,7 +135,7 @@ const closeMenu = () => {
 
 .title {
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 500;
   font-family: var(--secondary-font);
   color: #222;
   margin: 0;
@@ -145,7 +145,7 @@ const closeMenu = () => {
   flex: 2;
   display: flex;
   justify-content: center;
-  gap: 2.5rem;
+  gap: 4.5rem;
 }
 
 .auth-section {

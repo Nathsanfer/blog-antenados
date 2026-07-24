@@ -12,6 +12,7 @@ const router = useRouter();
 const posts = ref([]);
 const newspapers = ref([]);
 const categories = ref([]);
+const galleryImages = ref([]);
 
 function goToAllPosts() {
   router.push('/blog');
@@ -19,6 +20,10 @@ function goToAllPosts() {
 
 function goToAllNewspapers() {
   router.push('/blog?section=jornais');
+}
+
+function goToGallery() {
+  router.push('/galeria');
 }
 
 onMounted(async () => {
@@ -31,7 +36,14 @@ async function fetchCategories() {
   try {
     const { data, error } = await supabase
       .from("categories")
-      .select("*")
+      .select(`
+        *,
+        category_images (
+          id,
+          image_url,
+          position
+        )
+      `)
       .order("id", { ascending: true });
 
     if (error) {
@@ -45,6 +57,19 @@ async function fetchCategories() {
       cor: c.color || "#da4167",
       icone: CATEGORY_ICONS[c.icon] || CATEGORY_ICONS.lamp,
     }));
+
+    galleryImages.value = (data || [])
+      .flatMap((category) =>
+        (category.category_images || [])
+          .slice()
+          .sort((a, b) => a.position - b.position)
+          .map((image) => ({
+            id: image.id,
+            url: image.image_url,
+            categoryName: category.name || "",
+          })),
+      )
+      .slice(0, 6);
   } catch (e) {
     console.error("Erro ao buscar categorias:", e);
   }
@@ -94,6 +119,9 @@ async function fetchNewspapers() {
     newspapers.value = (data || []).map((n) => ({
       id: n.id,
       title: n.title || "",
+      image: n.cover_image_url || "../assets/post.jpg",
+      category: n.categories?.name || "Jornal Escolar",
+      categoryColor: n.categories?.color || "#6dac7e",
       status: n.status || "draft",
       createdAt: n.created_at || "",
       pdfUrl: n.pdf_url || "",
@@ -230,26 +258,21 @@ async function fetchNewspapers() {
       </div>
 
       <div class="bento-gallery">
-        <div class="bento-item main-item">
-          <img src="https://picsum.photos/800/800?random=11" alt="Destaque Galeria" />
-          <div class="bento-overlay">
-            <span>Artes e Expressão</span>
+        <div
+          v-for="(image, index) in galleryImages"
+          :key="image.id"
+          class="bento-item"
+          :class="{
+            'main-item': index === 0,
+            'tall-item': index === 1 || index === 2,
+            'wide-item': index === 3,
+            'standard-item': index >= 4,
+          }"
+        >
+          <img :src="image.url" :alt="`Imagem da galeria ${image.categoryName}`" />
+          <div v-if="index === 0" class="bento-overlay">
+            <span>{{ image.categoryName || 'Destaque da Galeria' }}</span>
           </div>
-        </div>
-        <div class="bento-item tall-item">
-          <img src="https://picsum.photos/600/900?random=12" alt="Foto Vertical Home" />
-        </div>
-        <div class="bento-item tall-item">
-          <img src="https://picsum.photos/600/900?random=16" alt="Foto Vertical Home" />
-        </div>
-        <div class="bento-item wide-item">
-          <img src="https://picsum.photos/900/600?random=13" alt="Foto Horizontal Home" />
-        </div>
-        <div class="bento-item standard-item">
-          <img src="https://picsum.photos/600/600?random=14" alt="Foto Galeria Home" />
-        </div>
-        <div class="bento-item standard-item">
-          <img src="https://picsum.photos/600/600?random=15" alt="Foto Galeria Home" />
         </div>
       </div>
 
@@ -272,6 +295,9 @@ async function fetchNewspapers() {
           v-for="newspaper in newspapers"
           :key="newspaper.id"
           :id="newspaper.id"
+          :image="newspaper.image"
+          :category="newspaper.category"
+          :category-color="newspaper.categoryColor"
           :title="newspaper.title"
           :created-at="newspaper.createdAt"
           :pdf-url="newspaper.pdfUrl"
