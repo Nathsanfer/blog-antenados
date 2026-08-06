@@ -134,7 +134,6 @@ async function fetchNewspapers() {
 </script>
 
 <template>
-  <meta name="google-site-verification" content="3hxNnDNmWHpbbEQwPQ9lZJ6NfeqyYtpMx04ZFEUMay0" />
   <HeaderTemplate />
   <main class="page-content" >
     <div class="banner">
